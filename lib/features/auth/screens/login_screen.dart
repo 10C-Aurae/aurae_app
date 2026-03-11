@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/auth_service.dart';
 import '../../../core/storage/token_storage.dart';
-import '../../../home/home_screen.dart';
+import '../../../navigation/main_navigation.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -39,7 +39,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(
+          builder: (_) => const MainNavigation(),
+        ),
       );
 
     } catch (e) {
@@ -65,83 +67,97 @@ class _LoginScreenState extends State<LoginScreen> {
 
       body: Center(
 
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
 
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+          child: Padding(
+            padding: const EdgeInsets.all(24),
 
-              const Text(
-                "Aurae",
-                style: TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+            child: Column(
 
-              const SizedBox(height: 40),
+              children: [
 
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: "Email",
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: "Password",
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              if (error != null)
-                Text(
-                  error!,
-                  style: const TextStyle(color: Colors.red),
+                const Icon(
+                  Icons.auto_awesome,
+                  size: 80,
+                  color: Color(0xFF6C63FF),
                 ),
 
-              const SizedBox(height: 10),
+                const SizedBox(height: 16),
 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-
-                  onPressed: loading ? null : login,
-
-                  child: loading
-                      ? const CircularProgressIndicator()
-                      : const Text("Login"),
-
+                const Text(
+                  "Aurae",
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 12),
+                const SizedBox(height: 8),
 
-              TextButton(
+                const Text(
+                  "Discover your digital aura",
+                  style: TextStyle(
+                    color: Colors.grey,
+                  ),
+                ),
 
-                onPressed: () {
+                const SizedBox(height: 40),
 
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const RegisterScreen(),
-                    ),
-                  );
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: "Email",
+                    prefixIcon: Icon(Icons.email),
+                  ),
+                ),
 
-                },
+                const SizedBox(height: 16),
 
-                child: const Text("Create Account"),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: "Password",
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                ),
 
-              )
+                const SizedBox(height: 24),
 
-            ],
+                if (error != null)
+                  Text(
+                    error!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+
+                const SizedBox(height: 10),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: loading ? null : login,
+                    child: loading
+                        ? const CircularProgressIndicator()
+                        : const Text("Login"),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const RegisterScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text("Create account"),
+                )
+
+              ],
+            ),
           ),
         ),
       ),

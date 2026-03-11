@@ -36,41 +36,47 @@ class _MainNavigationState extends State<MainNavigation> {
         currentIndex: currentIndex,
 
         onTap: (index) {
-          setState(() {
-            currentIndex = index;
-          });
+            setState(() {
+                currentIndex = index;
+            });
         },
+
+        type: BottomNavigationBarType.fixed,
+
+        selectedItemColor: const Color(0xFF6C63FF),
+
+        unselectedItemColor: Colors.grey,
 
         items: const [
 
-          BottomNavigationBarItem(
+            BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: "Home",
-          ),
+            ),
 
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
+            BottomNavigationBarItem(
+            icon: Icon(Icons.explore),
             label: "Discover",
-          ),
+            ),
 
-          BottomNavigationBarItem(
+            BottomNavigationBarItem(
             icon: Icon(Icons.auto_awesome),
             label: "AI",
-          ),
+            ),
 
-          BottomNavigationBarItem(
+            BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: "Profile",
-          ),
+            ),
 
-          BottomNavigationBarItem(
+            BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: "Settings",
-          ),
+            ),
 
         ],
 
-      ),
+        ),
 
     );
   }

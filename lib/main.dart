@@ -1,19 +1,29 @@
 import 'package:flutter/material.dart';
-import 'router/app_router.dart';
+import 'theme/app_theme.dart';
+import 'features/auth/screens/login_screen.dart';
 
 void main() {
   runApp(const AuraeApp());
 }
 
 class AuraeApp extends StatelessWidget {
+
   const AuraeApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
+
+    return MaterialApp(
+
       debugShowCheckedModeBanner: false,
+
       title: "Aurae",
-      routerConfig: AppRouter.router,
+
+      theme: AppTheme.theme,
+
+      home: const LoginScreen(),
+
     );
+
   }
 }
