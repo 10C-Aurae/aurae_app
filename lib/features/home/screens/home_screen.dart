@@ -36,11 +36,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     } catch (e) {
 
-        print("ERROR PROFILE: $e");
+      print("ERROR PROFILE: $e");
 
-        setState(() {
-            loading = false;
-        });
+      setState(() {
+        loading = false;
+      });
 
     }
 
@@ -49,71 +49,42 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
 
-    return Scaffold(
+    if (loading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
-      appBar: AppBar(
-        title: const Text("Aurae"),
-      ),
+    return SafeArea(
 
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
+      child: Padding(
 
-              padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
 
-              child: Column(
+        child: Column(
 
-                crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
 
-                children: [
+          children: [
 
-                  const Text(
-                    "Welcome back",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  if (profile != null)
-                    AuraCard(profile: profile!),
-
-                  const SizedBox(height: 30),
-
-                  const Text(
-                    "Recommended for you",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  ListTile(
-                    leading: const Icon(Icons.self_improvement),
-                    title: const Text("Meditation"),
-                    subtitle: const Text("Balance your aura energy"),
-                  ),
-
-                  ListTile(
-                    leading: const Icon(Icons.lightbulb),
-                    title: const Text("Creative thinking"),
-                    subtitle: const Text("Boost your indigo aura"),
-                  ),
-
-                  ListTile(
-                    leading: const Icon(Icons.menu_book),
-                    title: const Text("Reflection"),
-                    subtitle: const Text("Understand your archetype"),
-                  ),
-
-                ],
-
+            Text(
+              "Welcome back ${profile?.nombre ?? ''}",
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
             ),
+
+            const SizedBox(height: 20),
+
+            if (profile != null)
+              AuraCard(profile: profile!),
+
+          ],
+
+        ),
+
+      ),
 
     );
 

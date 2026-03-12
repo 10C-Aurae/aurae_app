@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import '../screens/home_screen.dart';
-import '../screens/discover_screen.dart';
-import '../screens/ai_screen.dart';
-import '../screens/settings_screen.dart';
+
+import '../features/home/screens/home_screen.dart';
+import '../features/discover/screens/discover_screen.dart';
+import '../features/ai/screens/ai_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
+import '../features/settings/screens/settings_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -16,18 +17,30 @@ class _MainNavigationState extends State<MainNavigation> {
 
   int currentIndex = 0;
 
-  final screens = [
-    const HomeScreen(),
-    const DiscoverScreen(),
-    const AIScreen(),
-    const ProfileScreen(),
-    const SettingsScreen(),
+  final screens = const [
+    HomeScreen(),
+    DiscoverScreen(),
+    AIScreen(),
+    ProfileScreen(),
+    SettingsScreen(),
+  ];
+
+  final titles = const [
+    "Aurae",
+    "Discover",
+    "AI",
+    "Profile",
+    "Settings",
   ];
 
   @override
   Widget build(BuildContext context) {
 
     return Scaffold(
+
+      appBar: AppBar(
+        title: Text(titles[currentIndex]),
+      ),
 
       body: screens[currentIndex],
 
@@ -36,48 +49,45 @@ class _MainNavigationState extends State<MainNavigation> {
         currentIndex: currentIndex,
 
         onTap: (index) {
-            setState(() {
-                currentIndex = index;
-            });
+          setState(() {
+            currentIndex = index;
+          });
         },
 
         type: BottomNavigationBarType.fixed,
 
-        selectedItemColor: const Color(0xFF6C63FF),
-
-        unselectedItemColor: Colors.grey,
-
         items: const [
 
-            BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: "Home",
-            ),
+          ),
 
-            BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.explore),
             label: "Discover",
-            ),
+          ),
 
-            BottomNavigationBarItem(
-            icon: Icon(Icons.auto_awesome),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.psychology),
             label: "AI",
-            ),
+          ),
 
-            BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: "Profile",
-            ),
+          ),
 
-            BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: "Settings",
-            ),
+          ),
 
         ],
 
-        ),
+      ),
 
     );
+
   }
 }

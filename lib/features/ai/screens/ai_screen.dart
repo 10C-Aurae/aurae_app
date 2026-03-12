@@ -8,7 +8,7 @@ class AIScreen extends StatelessWidget {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      appBar: AppBar(title: const Text("AI Insights")),
+    //   appBar: AppBar(title: const Text("AI Insights")),
       body: const Center(
         child: Text("AI analysis will appear here"),
       ),

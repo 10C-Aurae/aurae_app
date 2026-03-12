@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/profile_service.dart';
 import '../models/user_profile.dart';
+import '../../../core/utils/color_utils.dart';
 
 class ProfileScreen extends StatefulWidget {
 
@@ -58,9 +59,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
 
-      appBar: AppBar(
-        title: const Text("Profile"),
-      ),
+    //   appBar: AppBar(
+    //     title: const Text("Profile"),
+    //   ),
 
       body: Padding(
 
@@ -97,10 +98,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 30),
 
             Card(
-              child: ListTile(
-                title: const Text("Aura Color"),
-                subtitle: Text(profile!.auraColor),
-              ),
+                child: Container(
+                                
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                
+                    decoration: BoxDecoration(
+                      color: ColorUtils.hexToColor(profile!.auraColor),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    
+                        const Text(
+                          "Aura Color",
+                          style: TextStyle(
+                            color: Colors.white70,
+                          ),
+                        ),
+                
+                        const SizedBox(height: 8),
+                
+                        Text(
+                          ColorUtils.getColorName(profile!.auraColor),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            // color: Colors.white,
+                          ),
+                        ),
+                    
+                      ],
+                    ),
+                ),
             ),
 
             Card(

@@ -1,59 +1,46 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/color_utils.dart';
 import '../../profile/models/user_profile.dart';
 
 class AuraCard extends StatelessWidget {
 
   final UserProfile profile;
 
-  const AuraCard({
-    super.key,
-    required this.profile,
-  });
-
-  Color getAuraColor(String aura) {
-
-    switch (aura.toLowerCase()) {
-
-      case "indigo":
-        return Colors.indigo;
-
-      case "green":
-        return Colors.green;
-
-      case "red":
-        return Colors.red;
-
-      case "blue":
-        return Colors.blue;
-
-      default:
-        return Colors.purple;
-
-    }
-
-  }
+  const AuraCard({super.key, required this.profile});
 
   @override
   Widget build(BuildContext context) {
 
-    final auraColor = getAuraColor(profile.auraColor);
+    final auraColor = ColorUtils.hexToColor(profile.auraColor);
+    final auraName = ColorUtils.getColorName(profile.auraColor);
+
+    double progress = (profile.auraPoints % 100) / 100;
 
     return Container(
 
       width: double.infinity,
-
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
 
       decoration: BoxDecoration(
 
         gradient: LinearGradient(
           colors: [
-            auraColor.withOpacity(0.8),
+            auraColor.withOpacity(0.9),
             auraColor,
           ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
 
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+
+        boxShadow: [
+          BoxShadow(
+            color: auraColor.withOpacity(0.7),
+            blurRadius: 25,
+            spreadRadius: 3,
+          )
+        ],
 
       ),
 
@@ -63,17 +50,37 @@ class AuraCard extends StatelessWidget {
 
         children: [
 
-          const Text(
-            "Your Aura",
-            style: TextStyle(
-              color: Colors.white70,
-            ),
+          /// HEADER
+          Row(
+
+            children: [
+
+              const Icon(
+                Icons.auto_awesome,
+                color: Colors.white,
+                size: 26,
+              ),
+
+              const SizedBox(width: 8),
+
+              const Text(
+                "Your Aura",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+            ],
+
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 20),
 
+          /// AURA NAME
           Text(
-            profile.auraColor,
+            "$auraName Aura",
             style: const TextStyle(
               color: Colors.white,
               fontSize: 26,
@@ -81,33 +88,43 @@ class AuraCard extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
+          /// LEVEL
           Text(
-            profile.archetype,
+            "Level ${profile.auraLevel}",
             style: const TextStyle(
-              color: Colors.white,
+              color: Colors.white70,
+              fontSize: 16,
             ),
           ),
 
           const SizedBox(height: 12),
 
-          Text(
-            "Points: ${profile.points}",
-            style: const TextStyle(
-              color: Colors.white70,
+          /// PROGRESS BAR
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 10,
+              backgroundColor: Colors.white24,
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           ),
 
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
 
+          /// POINTS
           Text(
-            "Level: ${profile.level}",
+            "${profile.auraPoints} Aura Points",
             style: const TextStyle(
-            color: Colors.white70,
+              color: Colors.white,
+              fontSize: 14,
             ),
           ),
+
         ],
+
       ),
 
     );
