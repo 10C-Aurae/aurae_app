@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
+import '../../../core/auth/token_service.dart';
+import '../../../core/utils/color_utils.dart';
 import '../data/profile_service.dart';
 import '../models/user_profile.dart';
-import '../../../core/utils/color_utils.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-
   const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
-
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-
   UserProfile? profile;
   bool loading = true;
 
@@ -24,165 +23,235 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> loadProfile() async {
+    final token = await TokenService().getToken();
+
+    if (token == null) {
+      setState(() => loading = false);
+      return;
+    }
 
     try {
-
-      final result = await ProfileService.getProfile();
+      final result = await ProfileService().getMyProfile(token);
 
       setState(() {
         profile = result;
         loading = false;
       });
-
     } catch (e) {
-
-      print(e);
-
-      setState(() {
-        loading = false;
-      });
-
+      print("PROFILE ERROR: $e");
+      setState(() => loading = false);
     }
-
   }
 
   @override
   Widget build(BuildContext context) {
-
     if (loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     if (profile == null) {
-      return const Center(child: Text("Error loading profile"));
+      return const Scaffold(
+        body: Center(child: Text("No profile found")),
+      );
     }
 
+    final auraColor = ColorUtils.hexToColor(profile!.auraColorActual);
+
     return Scaffold(
-
-    //   appBar: AppBar(
-    //     title: const Text("Profile"),
-    //   ),
-
-      body: Padding(
-
-        padding: const EdgeInsets.all(20),
-
-        child: Column(
-
-          crossAxisAlignment: CrossAxisAlignment.center,
-
-          children: [
-
-            const CircleAvatar(
-              radius: 40,
-              child: Icon(Icons.person, size: 40),
-            ),
-
-            const SizedBox(height: 16),
-
-            Text(
-              profile!.nombre,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            Text(
-              profile!.email,
-              style: const TextStyle(
-                color: Colors.grey,
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            Card(
-                child: Container(
-                                
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                
-                    decoration: BoxDecoration(
-                      color: ColorUtils.hexToColor(profile!.auraColor),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    
-                        const Text(
-                          "Aura Color",
-                          style: TextStyle(
-                            color: Colors.white70,
-                          ),
-                        ),
-                
-                        const SizedBox(height: 8),
-                
-                        Text(
-                          ColorUtils.getColorName(profile!.auraColor),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            // color: Colors.white,
-                          ),
-                        ),
-                    
-                      ],
-                    ),
+      appBar: AppBar(
+        // title: const Text("Profile"),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EditProfileScreen(profile: profile!),
                 ),
-            ),
-
-            Card(
-              child: ListTile(
-                title: const Text("Aura Level"),
-                subtitle: Text(profile!.auraLevel.toString()),
-              ),
-            ),
-
-            Card(
-              child: ListTile(
-                title: const Text("Aura Points"),
-                subtitle: Text(profile!.auraPoints.toString()),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "Interests",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            Wrap(
-              spacing: 8,
-              children: profile!.interests.map((interest) {
-
-                return Chip(
-                  label: Text(interest.toString()),
-                );
-
-              }).toList(),
-            )
-
-          ],
-
-        ),
-
+              );
+              loadProfile();
+            },
+          )
+        ],
       ),
 
-    );
+      body: Container(
+        width: double.infinity,
 
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              auraColor.withOpacity(0.18),
+              Colors.white,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+
+                child: Column(
+                  children: [
+
+                    const SizedBox(height: 20),
+
+                    /// 🔥 AVATAR HERO
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+
+                        Container(
+                          height: 140,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: auraColor.withOpacity(0.5),
+                                blurRadius: 60,
+                                spreadRadius: 15,
+                              )
+                            ],
+                          ),
+                        ),
+
+                        CircleAvatar(
+                          radius: 60,
+                          backgroundColor: auraColor.withOpacity(0.2),
+                          backgroundImage: profile!.avatarUrl.isNotEmpty
+                              ? NetworkImage(profile!.avatarUrl)
+                              : null,
+                          child: profile!.avatarUrl.isEmpty
+                              ? const Icon(Icons.person, size: 55)
+                              : null,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    /// NOMBRE
+                    Text(
+                      profile!.nombre,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 5),
+
+                    /// EMAIL
+                    Text(
+                      profile!.email,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    /// 🔥 CARD PRINCIPAL
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.all(24),
+
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: auraColor.withOpacity(0.25),
+                            blurRadius: 30,
+                            spreadRadius: 4,
+                          )
+                        ],
+                      ),
+
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+
+                          /// NIVEL + PUNTOS
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _infoItem("Nivel", "${profile!.auraNivel}"),
+                              _infoItem("Puntos", "${profile!.auraPuntos}"),
+                            ],
+                          ),
+
+                          const SizedBox(height: 25),
+
+                          const Text(
+                            "Intereses",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: (profile!.intereses ?? []).map((e) {
+                              return Chip(
+                                label: Text(e),
+                                backgroundColor: auraColor.withOpacity(0.18),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
+  /// 🔹 ITEM INFO
+  Widget _infoItem(String title, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 13,
+          ),
+        ),
+      ],
+    );
+  }
 }

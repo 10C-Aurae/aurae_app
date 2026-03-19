@@ -11,10 +11,10 @@ class AuraCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final auraColor = ColorUtils.hexToColor(profile.auraColor);
-    final auraName = ColorUtils.getColorName(profile.auraColor);
+    final auraColor = ColorUtils.hexToColor(profile.auraColorActual);
+    final auraName = ColorUtils.getColorName(profile.auraColorActual);
 
-    double progress = (profile.auraPoints % 100) / 100;
+    double progress = (profile.auraPuntos % 100) / 100;
 
     return Container(
 
@@ -92,7 +92,7 @@ class AuraCard extends StatelessWidget {
 
           /// LEVEL
           Text(
-            "Level ${profile.auraLevel}",
+            "Level ${profile.auraNivel}",
             style: const TextStyle(
               color: Colors.white70,
               fontSize: 16,
@@ -116,7 +116,7 @@ class AuraCard extends StatelessWidget {
 
           /// POINTS
           Text(
-            "${profile.auraPoints} Aura Points",
+            "${profile.auraPuntos} Aura Points",
             style: const TextStyle(
               color: Colors.white,
               fontSize: 14,

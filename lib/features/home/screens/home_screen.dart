@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../profile/models/user_profile.dart';
 import '../../profile/data/profile_service.dart';
 import '../widgets/aura_card.dart';
+import '../../../core/auth/token_service.dart';
 
 class HomeScreen extends StatefulWidget {
 
@@ -25,24 +26,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> loadProfile() async {
 
-    try {
+    final token = await TokenService().getToken();
+    print("TOKEN: $token");
 
-      final result = await ProfileService.getProfile();
-
-      setState(() {
-        profile = result;
-        loading = false;
-      });
-
-    } catch (e) {
-
-      print("ERROR PROFILE: $e");
-
-      setState(() {
-        loading = false;
-      });
-
+    if (token == null) {
+      print("NO TOKEN FOUND");
+      return;
     }
+
+    final result = await ProfileService().getMyProfile(token);
+
+    setState(() {
+      profile = result;
+      loading = false;
+    });
 
   }
 

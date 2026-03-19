@@ -1,30 +1,36 @@
 class UserProfile {
 
+  final String id;
   final String nombre;
   final String email;
-  final String auraColor;
-  final int auraPoints;
-  final int auraLevel;
-  final List<dynamic> interests;
+  final String avatarUrl;
+  final int auraPuntos;
+  final String auraColorActual;
+  final int auraNivel;
+  final List<String> intereses;
 
   UserProfile({
+    required this.id,
     required this.nombre,
     required this.email,
-    required this.auraColor,
-    required this.auraPoints,
-    required this.auraLevel,
-    required this.interests,
+    required this.avatarUrl,
+    required this.auraPuntos,
+    required this.auraColorActual,
+    required this.auraNivel,
+    required this.intereses,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
 
     return UserProfile(
-      nombre: json["nombre"] ?? "",
-      email: json["email"] ?? "",
-      auraColor: json["aura_color_actual"] ?? "#FFFFFF",
-      auraPoints: json["aura_puntos"] ?? 0,
-      auraLevel: json["aura_nivel"] ?? 1,
-      interests: json["vector_intereses"] ?? [],
+      id: json["id"],
+      nombre: json["nombre"],
+      email: json["email"],
+      avatarUrl: json["avatar_url"] ?? "",
+      auraPuntos: json["aura_puntos"] ?? 0,
+      auraColorActual: json["aura_color_actual"] ?? "#000000",
+      auraNivel: json["aura_nivel"] ?? 1,
+      intereses: List<String>.from(json["vector_intereses"] ?? []),
     );
 
   }

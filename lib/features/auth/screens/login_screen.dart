@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../data/auth_service.dart';
-import '../../../core/storage/token_storage.dart';
 import '../../../navigation/main_navigation.dart';
 import 'register_screen.dart';
+import '../../../core/auth/token_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -33,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
         passwordController.text,
       );
 
-      await TokenStorage.saveToken(token);
+      await TokenService().saveToken(token);
 
       if (!mounted) return;
 
