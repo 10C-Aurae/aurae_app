@@ -5,6 +5,7 @@ import '../features/discover/screens/discover_screen.dart';
 import '../features/ai/screens/ai_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
+import '../features/tickets/screens/ticket_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -21,6 +22,7 @@ class _MainNavigationState extends State<MainNavigation> {
     HomeScreen(),
     DiscoverScreen(),
     AIScreen(),
+    TicketsScreen(),
     ProfileScreen(),
     SettingsScreen(),
   ];
@@ -29,6 +31,7 @@ class _MainNavigationState extends State<MainNavigation> {
     "Aurae",
     "Discover",
     "AI",
+    "Tickets",
     "Profile",
     "Settings",
   ];
@@ -71,6 +74,11 @@ class _MainNavigationState extends State<MainNavigation> {
           BottomNavigationBarItem(
             icon: Icon(Icons.psychology),
             label: "AI",
+          ),
+
+          BottomNavigationBarItem(
+            icon: Icon(Icons.confirmation_num),
+            label: "Tickets",
           ),
 
           BottomNavigationBarItem(

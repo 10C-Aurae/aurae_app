@@ -54,6 +54,7 @@ dev_dependencies:
   build_runner: ^2.4.9
   json_serializable: ^6.7.1
   image_picker: ^1.0.7
+  qr_flutter: ^4.1.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
