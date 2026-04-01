@@ -4,7 +4,6 @@ import '../../profile/data/profile_service.dart';
 import '../data/ticket_service.dart';
 import '../models/ticket.dart';
 import '../widgets/ticket_card.dart';
-import 'ticket_detail_screen.dart';
 
 class TicketsScreen extends StatefulWidget {
   const TicketsScreen({super.key});
@@ -26,52 +25,22 @@ class _TicketsScreenState extends State<TicketsScreen> {
 
   Future<void> loadTickets() async {
 
-    final token = await TokenService().getToken();
-
-    if (token == null) {
-      setMockTickets();
-      return;
-    }
-
     try {
 
-      final profile = await ProfileService().getMyProfile(token);
+      final token = await TokenService().getToken();
+      final user = await ProfileService().getMyProfile(token!);
 
-      final result = await TicketService()
-          .getUserTickets(token, profile.id);
+      final result = await TicketService.getMyTickets(user.id);
 
-      if (result.isEmpty) {
-        setMockTickets();
-      } else {
-        setState(() {
-          tickets = result;
-          loading = false;
-        });
-      }
+      setState(() {
+        tickets = result;
+        loading = false;
+      });
 
     } catch (e) {
-
-      print("⚠️ BACKEND FALLÓ → usando MOCK");
-
-      setMockTickets();
+      print("TICKETS ERROR: $e");
+      setState(() => loading = false);
     }
-  }
-
-  /// 🔥 MOCK FALLBACK
-  void setMockTickets() {
-    setState(() {
-      tickets = [
-        Ticket(
-          id: "mock123",
-          eventoId: "Tech Event CDMX",
-          tipo: "General",
-          statusUso: "activo",
-          qrCode: "MOCK_QR_123456",
-          createdAt: DateTime.now(),
-        ),
-      ];
-      loading = false;
-    });
   }
 
   @override
@@ -81,31 +50,44 @@ class _TicketsScreenState extends State<TicketsScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    if (tickets.isEmpty) {
+      return const Center(child: Text("No tienes tickets aún"));
+    }
+
     return Scaffold(
 
-      appBar: AppBar(title: const Text("Mis Tickets")),
+      appBar: AppBar(
+        title: const Text("Mis Tickets"),
+        centerTitle: true,
+      ),
 
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
+      body: RefreshIndicator(
+        onRefresh: loadTickets,
 
-        itemCount: tickets.length,
+        child: ListView.builder(
+          itemCount: tickets.length,
 
-        itemBuilder: (context, index) {
+          itemBuilder: (context, index) {
 
-          final ticket = tickets[index];
+            final ticket = tickets[index];
 
-          return TicketCard(
-            ticket: ticket,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TicketDetailScreen(ticket: ticket),
-                ),
-              );
-            },
-          );
-        },
+            return TicketCard(
+
+              ticket: ticket,
+
+              onUse: () async {
+                await TicketService.useTicket(ticket.id);
+                loadTickets();
+              },
+
+              onCancel: () async {
+                await TicketService.cancelTicket(ticket.id);
+                loadTickets();
+              },
+
+            );
+          },
+        ),
       ),
     );
   }

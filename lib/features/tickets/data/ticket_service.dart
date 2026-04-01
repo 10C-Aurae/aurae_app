@@ -5,17 +5,13 @@ import '../models/ticket.dart';
 
 class TicketService {
 
-  final String baseUrl = "${Env.baseUrl}/api/v1/tickets";
+  static const String baseUrl = Env.baseUrl;
 
-  /// 🔥 GET tickets del usuario
-  Future<List<Ticket>> getUserTickets(String token, String userId) async {
+  /// 🔹 Obtener tickets por usuario
+  static Future<List<Ticket>> getMyTickets(String userId) async {
 
     final response = await http.get(
-      Uri.parse("$baseUrl/usuario/$userId"),
-      headers: {
-        "Authorization": "Bearer $token",
-        "Content-Type": "application/json",
-      },
+      Uri.parse("$baseUrl/api/v1/tickets/usuario/$userId"),
     );
 
     if (response.statusCode == 200) {
@@ -29,14 +25,11 @@ class TicketService {
     }
   }
 
-  /// 🔥 USAR ticket
-  Future<void> useTicket(String token, String ticketId) async {
+  /// 🔹 Usar ticket
+  static Future<void> useTicket(String ticketId) async {
 
     final response = await http.post(
-      Uri.parse("$baseUrl/$ticketId/usar"),
-      headers: {
-        "Authorization": "Bearer $token",
-      },
+      Uri.parse("$baseUrl/api/v1/tickets/$ticketId/usar"),
     );
 
     if (response.statusCode != 200) {
@@ -44,14 +37,11 @@ class TicketService {
     }
   }
 
-  /// 🔥 CANCELAR ticket
-  Future<void> cancelTicket(String token, String ticketId) async {
+  /// 🔹 Cancelar ticket
+  static Future<void> cancelTicket(String ticketId) async {
 
     final response = await http.post(
-      Uri.parse("$baseUrl/$ticketId/cancelar"),
-      headers: {
-        "Authorization": "Bearer $token",
-      },
+      Uri.parse("$baseUrl/api/v1/tickets/$ticketId/cancelar"),
     );
 
     if (response.statusCode != 200) {

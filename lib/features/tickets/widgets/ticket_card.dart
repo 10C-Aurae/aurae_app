@@ -1,120 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/ticket.dart';
 
 class TicketCard extends StatelessWidget {
 
   final Ticket ticket;
-  final VoidCallback onTap;
+  final VoidCallback onUse;
+  final VoidCallback onCancel;
 
   const TicketCard({
     super.key,
     required this.ticket,
-    required this.onTap,
+    required this.onUse,
+    required this.onCancel,
   });
 
   @override
   Widget build(BuildContext context) {
 
-    final isActive = ticket.statusUso == "activo";
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+      padding: const EdgeInsets.all(20),
 
-    return GestureDetector(
-      onTap: onTap,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+          )
+        ],
+      ),
 
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 12),
-        padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
 
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isActive
-                ? [Colors.deepPurple, Colors.purpleAccent]
-                : [Colors.grey.shade400, Colors.grey.shade600],
+          /// 🎟️ INFO
+          Text(
+            "Ticket ${ticket.tipo}",
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            )
-          ],
-        ),
 
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          const SizedBox(height: 10),
 
-            /// HEADER
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-
-                const Icon(
-                  Icons.confirmation_number,
-                  color: Colors.white,
-                  size: 30,
-                ),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isActive ? Colors.green : Colors.red,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    ticket.statusUso.toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                    ),
-                  ),
-                )
-              ],
+          Text(
+            "Status: ${ticket.statusUso}",
+            style: TextStyle(
+              color: ticket.statusUso == "activo"
+                  ? Colors.green
+                  : Colors.red,
             ),
+          ),
 
-            const SizedBox(height: 20),
+          const SizedBox(height: 20),
 
-            /// EVENTO
-            Text(
-              ticket.eventoId,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+          /// 🔳 QR
+          QrImageView(
+            data: ticket.qrCode,
+            size: 180,
+          ),
+
+          const SizedBox(height: 20),
+
+          /// 🔘 BOTONES
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+
+              ElevatedButton(
+                onPressed: ticket.statusUso == "activo" ? onUse : null,
+                child: const Text("Usar"),
               ),
-            ),
 
-            const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: ticket.statusUso == "activo" ? onCancel : null,
+                child: const Text("Cancelar"),
+              ),
 
-            Text(
-              "Tipo: ${ticket.tipo}",
-              style: const TextStyle(color: Colors.white70),
-            ),
+            ],
+          )
 
-            const SizedBox(height: 20),
-
-            /// FOOTER
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-
-                Text(
-                  "Ver detalle",
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                ),
-
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.white,
-                  size: 16,
-                )
-              ],
-            )
-          ],
-        ),
+        ],
       ),
     );
   }

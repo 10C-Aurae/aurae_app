@@ -7,6 +7,8 @@ class AppTheme {
 
   static ThemeData theme = ThemeData(
 
+    fontFamily: "Roboto",
+
     useMaterial3: true,
 
     colorScheme: ColorScheme.fromSeed(
