@@ -18,29 +18,32 @@ class TicketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    final isActive = ticket.statusUso == "activo";
+
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+      margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       padding: const EdgeInsets.all(20),
 
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6C63FF), Color(0xFF8E85FF)],
+        ),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 10,
+            color: Colors.deepPurple.withOpacity(0.3),
+            blurRadius: 15,
           )
         ],
       ),
 
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
 
-          /// 🎟️ INFO
           Text(
-            "Ticket ${ticket.tipo}",
+            "🎟 Ticket ${ticket.tipo}",
             style: const TextStyle(
+              color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -51,40 +54,45 @@ class TicketCard extends StatelessWidget {
           Text(
             "Status: ${ticket.statusUso}",
             style: TextStyle(
-              color: ticket.statusUso == "activo"
-                  ? Colors.green
-                  : Colors.red,
+              color: isActive ? Colors.greenAccent : Colors.redAccent,
             ),
           ),
 
           const SizedBox(height: 20),
 
-          /// 🔳 QR
-          QrImageView(
-            data: ticket.qrCode,
-            size: 180,
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: QrImageView(
+              data: ticket.qrCode,
+              size: 140,
+            ),
           ),
 
           const SizedBox(height: 20),
 
-          /// 🔘 BOTONES
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
 
               ElevatedButton(
-                onPressed: ticket.statusUso == "activo" ? onUse : null,
+                onPressed: isActive ? onUse : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                ),
                 child: const Text("Usar"),
               ),
 
               OutlinedButton(
-                onPressed: ticket.statusUso == "activo" ? onCancel : null,
+                onPressed: isActive ? onCancel : null,
                 child: const Text("Cancelar"),
               ),
 
             ],
           )
-
         ],
       ),
     );

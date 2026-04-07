@@ -1,183 +1,153 @@
 import 'package:flutter/material.dart';
 import '../models/event.dart';
 
-class EventDetailScreen extends StatelessWidget {
+import '../../tickets/data/ticket_service.dart';
+import '../../tickets/screens/ticket_detail_screen.dart';
+import '../../profile/data/profile_service.dart';
+import '../../../core/auth/token_service.dart';
+
+class EventDetailScreen extends StatefulWidget {
 
   final Event event;
 
   const EventDetailScreen({super.key, required this.event});
 
   @override
+  State<EventDetailScreen> createState() => _EventDetailScreenState();
+}
+
+class _EventDetailScreenState extends State<EventDetailScreen> {
+
+  bool loading = false;
+
+  Future<void> buyTicket() async {
+
+    setState(() => loading = true);
+
+    try {
+
+      final token = await TokenService().getToken();
+
+      if (token == null) {
+        throw Exception("Usuario no autenticado");
+      }
+
+      final profile = await ProfileService().getMyProfile(token);
+
+      final ticket = await TicketService.createTicket(
+        usuarioId: profile.id,
+        eventoId: widget.event.id,
+      );
+
+      if (!mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TicketDetailScreen(ticket: ticket),
+        ),
+      );
+
+    } catch (e) {
+
+      print("ERROR BUY: $e");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: ${e.toString()}")),
+      );
+
+    } finally {
+      setState(() => loading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
 
-    return Scaffold(
+    final event = widget.event;
 
+    return Scaffold(
       body: Column(
         children: [
 
-          /// 🔥 HEADER IMAGE + BACK
+          /// 🔥 HEADER
           Stack(
             children: [
 
               SizedBox(
                 height: 260,
                 width: double.infinity,
-                child: event.imagenUrl.isNotEmpty
+                child: (event.imagenUrl != null && event.imagenUrl!.isNotEmpty)
                     ? Image.network(
-                        event.imagenUrl,
+                        event.imagenUrl!,
                         fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            Container(color: Colors.grey.shade300),
                       )
                     : Container(color: Colors.grey.shade300),
               ),
 
-              /// DEGRADADO
-              Container(
-                height: 260,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.black.withOpacity(0.6),
-                      Colors.transparent,
-                    ],
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                  ),
-                ),
-              ),
-
-              /// BACK BUTTON
               SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: CircleAvatar(
-                    backgroundColor: Colors.black.withOpacity(0.5),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
                 ),
               ),
             ],
           ),
 
-          /// 🔥 CONTENIDO
+          /// 🔥 BODY
           Expanded(
-            child: Transform.translate(
-              offset: const Offset(0, -20),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
 
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
 
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(30),
+                  Text(
+                    event.nombre,
+                    style: const TextStyle(
+                        fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                ),
 
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                  const SizedBox(height: 10),
 
-                      /// NOMBRE
-                      Text(
-                        event.nombre,
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
+                  Text(event.descripcion),
+
+                  const Spacer(),
+
+                  /// 🔥 BOTÓN PRO
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+
+                      onPressed: loading ? null : buyTicket,
+
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Colors.deepPurple,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
 
-                      const SizedBox(height: 10),
-
-                      /// UBICACIÓN
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on, size: 18),
-                          const SizedBox(width: 5),
-                          Expanded(child: Text(event.ubicacionNombre)),
-                        ],
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      /// FECHA
-                      Row(
-                        children: [
-                          const Icon(Icons.calendar_today, size: 18),
-                          const SizedBox(width: 5),
-                          Text(
-                            "${event.fechaInicio.toLocal()}".split(".")[0],
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      /// PRECIO
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: event.esGratuito
-                              ? Colors.green
-                              : Colors.deepPurple,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          event.esGratuito
-                              ? "GRATIS"
-                              : "\$${event.precio}",
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      /// DESCRIPCIÓN
-                      const Text(
-                        "Descripción",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      Text(event.descripcion),
-
-                      const SizedBox(height: 30),
-
-                      /// BOTÓN
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // futuro: comprar ticket
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                      child: loading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.confirmation_number),
+                                SizedBox(width: 10),
+                                Text("Obtener Ticket"),
+                              ],
                             ),
-                          ),
-                          child: const Text("Obtener Ticket"),
-                        ),
-                      ),
-
-                      const SizedBox(height: 30),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-          ),
+          )
         ],
       ),
     );
