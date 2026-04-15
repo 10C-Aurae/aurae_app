@@ -221,52 +221,53 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
                   const SizedBox(height: 32),
 
-                  // ── Stands Section ──────────────────────────
-                  if (stands.isNotEmpty || standsLoading) ...[
-                    const Text('Stands del evento', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.ink)),
+                  // ── Stands + tools: solo con ticket ─────────
+                  if (!checkingTicket && hasTicket) ...[
+                    if (stands.isNotEmpty || standsLoading) ...[
+                      const Text('Stands del evento', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.ink)),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 170,
+                        child: standsLoading
+                          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                          : ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: stands.length,
+                              itemBuilder: (context, index) => StandCard(stand: stands[index]),
+                            ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                    const Text('Herramientas inteligentes', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.muted, letterSpacing: 0.8)),
                     const SizedBox(height: 16),
-                    SizedBox(
-                      height: 170,
-                      child: standsLoading
-                        ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-                        : ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: stands.length,
-                            itemBuilder: (context, index) => StandCard(stand: stands[index]),
-                          ),
+                    _buildToolTile(
+                      Icons.auto_awesome_rounded, 'Concierge', 'Gestiona tus turnos virtuales',
+                      () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => ConciergeScreen(eventoId: event.id, eventoNombre: event.nombre),
+                      )),
                     ),
-                    const SizedBox(height: 32),
+                    _buildToolTile(
+                      Icons.route_rounded, 'Aura Flow', 'Tu ruta personalizada',
+                      () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => AuraFlowScreen(eventoId: event.id, eventoNombre: event.nombre),
+                      )),
+                    ),
+                    _buildToolTile(
+                      Icons.qr_code_scanner_rounded, 'Escanear QR', 'Check-in manual de stands',
+                      () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => ScanQRScreen(eventoId: event.id),
+                      )),
+                    ),
+                    _buildToolTile(
+                      Icons.chat_bubble_outline_rounded, 'Chat del evento', 'Habla con otros asistentes',
+                      () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => EventChatScreen(eventoId: event.id, eventoNombre: event.nombre),
+                      )),
+                    ),
+                    const SizedBox(height: 16),
                   ],
 
-                  // ── Herramientas del evento ──────────────────
-                  const Text('Herramientas inteligentes', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.muted, letterSpacing: 0.8)),
-                  const SizedBox(height: 16),
-                  _buildToolTile(
-                    Icons.auto_awesome_rounded, 'Concierge', 'Gestiona tus turnos virtuales',
-                    () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => ConciergeScreen(eventoId: event.id, eventoNombre: event.nombre),
-                    )),
-                  ),
-                  _buildToolTile(
-                    Icons.route_rounded, 'Aura Flow', 'Tu ruta personalizada',
-                    () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => AuraFlowScreen(eventoId: event.id, eventoNombre: event.nombre),
-                    )),
-                  ),
-                  _buildToolTile(
-                    Icons.qr_code_scanner_rounded, 'Escanear QR', 'Check-in manual de stands',
-                    () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => ScanQRScreen(eventoId: event.id),
-                    )),
-                  ),
-                  _buildToolTile(
-                    Icons.chat_bubble_outline_rounded, 'Chat del evento', 'Habla con otros asistentes',
-                    () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => EventChatScreen(eventoId: event.id, eventoNombre: event.nombre),
-                    )),
-                  ),
-
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 24),
 
                   // Gradient buy button
                   if (checkingTicket)
