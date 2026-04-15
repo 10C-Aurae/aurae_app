@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'theme/app_theme.dart';
-import 'features/auth/screens/login_screen.dart';
+import 'router/app_router.dart';
+import 'core/config/env.dart';
 
 void main() {
-  runApp(const AuraeApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  Stripe.publishableKey = Env.stripePublishableKey;
+  runApp(const ProviderScope(child: AuraeApp()));
 }
 
 class AuraeApp extends StatelessWidget {
@@ -11,17 +16,17 @@ class AuraeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Aurae',
       theme: AppTheme.theme,
+      routerConfig: AppRouter.router,
       builder: (context, child) {
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
           child: child!,
         );
       },
-      home: const LoginScreen(),
     );
   }
 }

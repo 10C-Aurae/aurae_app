@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_colors.dart';
 import '../models/event.dart';
-import '../../tickets/data/ticket_service.dart';
-import '../../tickets/screens/ticket_detail_screen.dart';
-import '../../profile/data/profile_service.dart';
-import '../../../core/auth/token_service.dart';
+import '../../tickets/screens/buy_ticket_screen.dart';
+
+
 import '../data/stands_service.dart';
 import '../widgets/stand_card.dart';
+import '../../concierge/screens/concierge_screen.dart';
+import '../../aura_flow/screens/aura_flow_screen.dart';
+import '../../scan_qr/screens/scan_qr_screen.dart';
+import '../../chat/screens/event_chat_screen.dart';
 import 'package:intl/intl.dart';
 
 class EventDetailScreen extends StatefulWidget {
@@ -40,26 +43,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     }
   }
 
-  Future<void> buyTicket() async {
-    setState(() => loading = true);
-    try {
-      final token = await TokenService().getToken();
-      if (token == null) throw Exception('No autenticado');
-      final profile = await ProfileService().getMyProfile(token);
-      final ticket = await TicketService.createTicket(
-        usuarioId: profile.id,
-        eventoId: widget.event.id,
-      );
-      if (!mounted) return;
-      Navigator.push(context, MaterialPageRoute(builder: (_) => TicketDetailScreen(ticket: ticket)));
-    } catch (e) {
-      print('ERROR BUY: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    } finally {
-      setState(() => loading = false);
-    }
+  void buyTicket() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => BuyTicketScreen(event: widget.event)),
+    );
   }
 
   @override
@@ -212,10 +200,30 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   // ── Herramientas del evento ──────────────────
                   const Text('Herramientas inteligentes', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.muted, letterSpacing: 0.8)),
                   const SizedBox(height: 16),
-                  _buildToolTile(Icons.auto_awesome_rounded, 'Concierge', 'Gestiona tus turnos virtuales', () {}),
-                  _buildToolTile(Icons.route_rounded, 'Aura Flow', 'Tu ruta personalizada', () {}),
-                  _buildToolTile(Icons.qr_code_scanner_rounded, 'Escanear QR', 'Check-in manual de stands', () {}),
-                  _buildToolTile(Icons.chat_bubble_outline_rounded, 'Chat del evento', 'Habla con otros asistentes', () {}),
+                  _buildToolTile(
+                    Icons.auto_awesome_rounded, 'Concierge', 'Gestiona tus turnos virtuales',
+                    () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => ConciergeScreen(eventoId: event.id, eventoNombre: event.nombre),
+                    )),
+                  ),
+                  _buildToolTile(
+                    Icons.route_rounded, 'Aura Flow', 'Tu ruta personalizada',
+                    () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => AuraFlowScreen(eventoId: event.id, eventoNombre: event.nombre),
+                    )),
+                  ),
+                  _buildToolTile(
+                    Icons.qr_code_scanner_rounded, 'Escanear QR', 'Check-in manual de stands',
+                    () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => ScanQRScreen(eventoId: event.id),
+                    )),
+                  ),
+                  _buildToolTile(
+                    Icons.chat_bubble_outline_rounded, 'Chat del evento', 'Habla con otros asistentes',
+                    () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => EventChatScreen(eventoId: event.id, eventoNombre: event.nombre),
+                    )),
+                  ),
 
                   const SizedBox(height: 40),
 

@@ -1,11 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/splash_screen.dart';
 import '../features/auth/screens/register_screen.dart';
-import '../../navigation/main_navigation.dart';
-import '../../features/profile/screens/profile_screen.dart';
-import '../../features/profile/screens/edit_profile_screen.dart';
+import '../features/profile/screens/profile_screen.dart';
+import '../navigation/main_navigation.dart';
 
 class AppRouter {
   static final router = GoRouter(
@@ -20,25 +18,16 @@ class AppRouter {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
-        path: "/home",
-        builder: (context, state) => const Scaffold(
-        body: Center(child: Text("Home Screen")),
-        ),
-      ),
-      GoRoute(
         path: "/register",
         builder: (context, state) => const RegisterScreen(),
       ),
       GoRoute(
-        path: "/profile",
-        builder: (context, state) =>
-            const ProfileScreen(),
+        path: "/home",
+        builder: (context, state) => const MainNavigation(),
       ),
-  
       GoRoute(
-        path: "/edit-profile",
-        builder: (context, state) =>
-            const EditProfileScreen(),
+        path: "/profile",
+        builder: (context, state) => const ProfileScreen(),
       ),
     ],
   );

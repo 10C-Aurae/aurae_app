@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_colors.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/auth/token_service.dart';
+import '../../staff/screens/staff_login_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -42,6 +45,15 @@ class SettingsScreen extends StatelessWidget {
                 _SettingsTile(icon: Icons.help_outline_rounded,   label: 'Ayuda & Soporte', onTap: () {}),
 
                 const SizedBox(height: 24),
+                const _SectionLabel('Staff'),
+                _SettingsTile(
+                  icon: Icons.manage_accounts_rounded,
+                  label: 'Panel de Staff',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => const StaffLoginScreen())),
+                ),
+
+                const SizedBox(height: 24),
 
                 // Logout tile (danger style)
                 Container(
@@ -53,7 +65,11 @@ class SettingsScreen extends StatelessWidget {
                   child: ListTile(
                     leading: const Icon(Icons.logout_rounded, color: AppColors.primary),
                     title: const Text('Cerrar sesión', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w500)),
-                    onTap: () {},
+                    onTap: () async {
+                      await TokenService().deleteToken();
+                      if (!context.mounted) return;
+                      context.go('/login');
+                    },
                   ),
                 ),
               ]),

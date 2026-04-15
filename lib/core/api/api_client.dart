@@ -3,8 +3,7 @@ import 'package:http/http.dart' as http;
 
 class ApiClient {
 
-  static const String baseUrl =
-      "https://backend-aurae.onrender.com/api/v1";
+  static const String baseUrl = "https://api.aurae.live/api/v1";
 
   static Map<String, String> headers(String token) {
     return {

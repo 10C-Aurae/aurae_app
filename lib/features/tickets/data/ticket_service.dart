@@ -13,6 +13,9 @@ class TicketService {
   static Future<Ticket> createTicket({
     required String usuarioId,
     required String eventoId,
+    required String ordenId,
+    double precio = 0,
+    String tipo = 'general',
   }) async {
 
     final token = await TokenService().getToken();
@@ -35,14 +38,11 @@ class TicketService {
         body: jsonEncode({
           "usuario_id": usuarioId,
           "evento_id": eventoId,
-          "orden_id": "ORD_${DateTime.now().millisecondsSinceEpoch}",
-          "tipo": "general",
-          "precio": 0
+          "orden_id": ordenId,
+          "tipo": tipo,
+          "precio": precio,
         }),
       ).timeout(const Duration(seconds: 15));
-
-      print("STATUS: ${response.statusCode}");
-      print("BODY: ${response.body}");
 
       if (response.statusCode == 201) {
         return Ticket.fromJson(jsonDecode(response.body));
@@ -51,7 +51,6 @@ class TicketService {
       throw Exception("Error backend: ${response.body}");
 
     } catch (e) {
-      print("ERROR CREATE TICKET: $e");
       throw Exception("No se pudo generar el ticket");
     }
   }
