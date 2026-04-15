@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-import '../../../core/auth/token_service.dart';
+import '../../../theme/app_colors.dart';
 import '../data/ticket_service.dart';
 import '../models/ticket.dart';
 
 class TicketDetailScreen extends StatefulWidget {
-
   final Ticket ticket;
 
   const TicketDetailScreen({super.key, required this.ticket});
@@ -16,256 +15,259 @@ class TicketDetailScreen extends StatefulWidget {
 }
 
 class _TicketDetailScreenState extends State<TicketDetailScreen> {
-
   bool loading = false;
 
   @override
   Widget build(BuildContext context) {
-
     final ticket = widget.ticket;
     final isActive = ticket.statusUso == "activo";
 
     return Scaffold(
-
-      body: Container(
-
-        width: double.infinity,
-
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF6C63FF), Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-
-        child: SafeArea(
-
-          child: Column(
-            children: [
-
-              /// 🔥 HEADER
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Row(
-                  children: [
-
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () => Navigator.pop(context),
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Header ──────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: AppColors.ink),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const Text(
+                    "Tu Entrada",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink,
                     ),
-
-                    const Text(
-                      "Ticket",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
+            const SizedBox(height: 10),
 
-              const SizedBox(height: 20),
+            // ── Success Confirmation ────────────────────────────────
+            const Icon(Icons.check_circle_rounded, size: 54, color: Color(0xFF4ADE80)),
+            const SizedBox(height: 16),
+            const Text(
+              "¡Ticket confirmado!",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColors.ink,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              "Muestra este código en la entrada del evento",
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.muted,
+              ),
+            ),
+            const SizedBox(height: 24),
 
-              /// 🔥 CARD PRINCIPAL
-              Expanded(
+            // ── Ticket Card ─────────────────────────────────────────
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Container(
-                  margin: const EdgeInsets.all(20),
-                  padding: const EdgeInsets.all(25),
-
+                  width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.3)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
+                        color: AppColors.primary.withOpacity(0.12),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
                       )
                     ],
                   ),
-
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-
-                      /// 🔹 INFO + QR
-                      Column(
-                        children: [
-
-                          /// EVENTO
-                          Text(
-                            "Evento ID",
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-
-                          Text(
-                            ticket.eventoId,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                      Container(
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          gradient: AppColors.brandGradient,
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          children: [
+                            // ID & Status
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "ID: ${ticket.id.substring(0, 8)}...",
+                                  style: const TextStyle(fontSize: 12, color: AppColors.muted, fontFamily: 'monospace'),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: (isActive ? const Color(0xFF4ADE80) : AppColors.faint).withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: isActive ? const Color(0xFF4ADE80) : AppColors.muted,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        ticket.statusUso.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: isActive ? const Color(0xFF4ADE80) : AppColors.muted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
+                            const SizedBox(height: 24),
 
-                          const SizedBox(height: 10),
-
-                          Text("Tipo: ${ticket.tipo}"),
-
-                          const SizedBox(height: 20),
-
-                          /// 🔥 QR
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              color: Colors.grey[100],
-                            ),
-                            child: QrImageView(
-                              data: ticket.qrCode,
-                              size: 220,
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          /// ID
-                          Text(
-                            "ID: ${ticket.id}",
-                            style: const TextStyle(fontSize: 12),
-                          ),
-
-                          const SizedBox(height: 15),
-
-                          /// STATUS
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isActive ? Colors.green : Colors.red,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              ticket.statusUso.toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
+                            // Type & Value
+                            const Text(
+                              "TICKET GENERAL",
+                              style: TextStyle(
+                                fontSize: 13,
                                 fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                                letterSpacing: 2,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(height: 30),
 
-                      /// 🔥 BOTONES
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-
-                          /// USAR
-                          ElevatedButton(
-                            onPressed: (!isActive || loading)
-                                ? null
-                                : useTicket,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 12),
-                            ),
-                            child: loading
-                                ? const SizedBox(
-                                    height: 16,
-                                    width: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
+                            // QR Code
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.5),
+                                    blurRadius: 15,
                                   )
-                                : const Text("Usar"),
-                          ),
-
-                          /// CANCELAR
-                          ElevatedButton(
-                            onPressed: (!isActive || loading)
-                                ? null
-                                : cancelTicket,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 12),
+                                ],
+                              ),
+                              child: QrImageView(
+                                data: ticket.qrCode,
+                                size: 180,
+                              ),
                             ),
-                            child: const Text("Cancelar"),
-                          ),
-                        ],
-                      )
+                            const SizedBox(height: 30),
+
+                            // Action Buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: isActive ? AppColors.brandGradient : null,
+                                        color: isActive ? null : AppColors.faint,
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: ElevatedButton(
+                                        onPressed: (!isActive || loading) ? null : useTicket,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.transparent,
+                                          shadowColor: Colors.transparent,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                        ),
+                                        child: loading
+                                            ? const SizedBox(
+                                                height: 18,
+                                                width: 18,
+                                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                              )
+                                            : const Text("Marcar como Usado", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: OutlinedButton(
+                                onPressed: (!isActive || loading) ? null : cancelTicket,
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: isActive ? const Color(0xFFFF5C5C).withOpacity(0.5) : AppColors.border),
+                                  foregroundColor: const Color(0xFFFF5C5C),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                ),
+                                child: const Text("Cancelar Ticket", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
   }
 
-  /// 🔥 USAR TICKET
   Future<void> useTicket() async {
-
     setState(() => loading = true);
-
     try {
-
       await TicketService.useTicket(widget.ticket.id);
-
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Ticket usado")),
+        const SnackBar(content: Text("Ticket usado correctamente", style: TextStyle(color: Colors.white)), backgroundColor: AppColors.card),
       );
-
       Navigator.pop(context);
-
     } catch (e) {
-
-      print("ERROR USE TICKET: $e");
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al usar ticket")),
+        SnackBar(content: Text("Error al usar ticket: $e", style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
       );
-
     } finally {
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
-  /// 🔥 CANCELAR TICKET
   Future<void> cancelTicket() async {
-
     setState(() => loading = true);
-
     try {
-
       await TicketService.cancelTicket(widget.ticket.id);
-
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Ticket cancelado")),
+        const SnackBar(content: Text("Ticket cancelado", style: TextStyle(color: Colors.white)), backgroundColor: AppColors.card),
       );
-
       Navigator.pop(context);
-
     } catch (e) {
-
-      print("ERROR CANCEL TICKET: $e");
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al cancelar ticket")),
+        SnackBar(content: Text("Error al cancelar ticket: $e", style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
       );
-
     } finally {
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 }

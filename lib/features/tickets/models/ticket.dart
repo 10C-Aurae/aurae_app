@@ -3,6 +3,7 @@ class Ticket {
   final String id;
   final String usuarioId;
   final String eventoId;
+  String? eventoNombre;
   final String tipo;
   final String statusUso;
   final String qrCode;
@@ -12,6 +13,7 @@ class Ticket {
     required this.id,
     required this.usuarioId,
     required this.eventoId,
+    this.eventoNombre,
     required this.tipo,
     required this.statusUso,
     required this.qrCode,

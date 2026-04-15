@@ -43,7 +43,7 @@ class AuraLogic {
   };
 
   static Color hslToColor(double h, double s, double l) {
-    return HSLColor.fromAHSV(1.0, h, s / 100.0, l / 100.0).toColor(); // wait HSL != HSV, Flutter has HSLColor directly: HSLColor.fromAHSL(1.0, h, s / 100.0, l / 100.0).toColor()
+    return HSLColor.fromAHSL(1.0, h, s / 100.0, l / 100.0).toColor();
   }
 
   static double promedioHueCircular(List<int> hues) {

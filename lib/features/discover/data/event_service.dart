@@ -26,4 +26,19 @@ class EventService {
       throw Exception("Error loading events");
     }
   }
+
+  Future<Event> getEventById(String id) async {
+    final response = await http.get(
+      Uri.parse("$baseUrl/$id"),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return Event.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception("Error loading event details for: $id");
+    }
+  }
 }
