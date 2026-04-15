@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-import '../features/home/screens/home_screen.dart';
 import '../features/discover/screens/discover_screen.dart';
 import '../features/ai/screens/ai_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
@@ -19,7 +18,6 @@ class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
   final _screens = const [
-    HomeScreen(),
     DiscoverScreen(),
     AIScreen(),
     TicketsScreen(),
@@ -45,12 +43,11 @@ class _MainNavigationState extends State<MainNavigation> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _NavItem(icon: Icons.home_rounded,           label: 'Home',     index: 0, currentIndex: _currentIndex, onTap: _onTap),
-                _NavItem(icon: Icons.explore_rounded,        label: 'Discover', index: 1, currentIndex: _currentIndex, onTap: _onTap),
-                _NavItem(icon: Icons.psychology_rounded,     label: 'AI',       index: 2, currentIndex: _currentIndex, onTap: _onTap),
-                _NavItem(icon: Icons.confirmation_num_rounded, label: 'Tickets', index: 3, currentIndex: _currentIndex, onTap: _onTap),
-                _NavItem(icon: Icons.person_rounded,         label: 'Perfil',   index: 4, currentIndex: _currentIndex, onTap: _onTap),
-                _NavItem(icon: Icons.settings_rounded,       label: 'Settings', index: 5, currentIndex: _currentIndex, onTap: _onTap),
+                _NavItem(icon: Icons.explore_rounded,        label: 'Discover', index: 0, currentIndex: _currentIndex, onTap: _onTap),
+                _NavItem(icon: Icons.psychology_rounded,     label: 'AI',       index: 1, currentIndex: _currentIndex, onTap: _onTap),
+                _NavItem(icon: Icons.confirmation_num_rounded, label: 'Tickets', index: 2, currentIndex: _currentIndex, onTap: _onTap),
+                _NavItem(icon: Icons.person_rounded,         label: 'Perfil',   index: 3, currentIndex: _currentIndex, onTap: _onTap),
+                _NavItem(icon: Icons.settings_rounded,       label: 'Settings', index: 4, currentIndex: _currentIndex, onTap: _onTap),
               ],
             ),
           ),

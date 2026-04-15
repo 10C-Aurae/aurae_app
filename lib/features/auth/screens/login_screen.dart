@@ -4,6 +4,7 @@ import '../data/auth_service.dart';
 import '../../../navigation/main_navigation.dart';
 import 'register_screen.dart';
 import '../../../core/auth/token_service.dart';
+import '../../staff/screens/staff_login_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -215,6 +216,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         text: const TextSpan(children: [
                           TextSpan(text: '¿No tienes cuenta? ', style: TextStyle(color: AppColors.muted, fontSize: 14)),
                           TextSpan(text: 'Regístrate', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 14)),
+                        ]),
+                      ),
+                    ),
+
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const StaffLoginScreen()),
+                      ),
+                      child: RichText(
+                        text: const TextSpan(children: [
+                          TextSpan(text: '¿Staff de un stand? ', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                          TextSpan(text: 'Ingresa aquí', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
                         ]),
                       ),
                     ),

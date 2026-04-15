@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_colors.dart';
 import '../../../core/auth/token_service.dart';
 import '../../../core/utils/aura_logic.dart';
-import '../../../core/utils/color_utils.dart';
 import '../../profile/data/profile_service.dart';
 import '../../profile/models/user_profile.dart';
 import '../../tickets/data/ticket_service.dart';
@@ -22,16 +21,14 @@ class _AIScreenState extends State<AIScreen> {
   bool _loading = true;
   String? _error;
 
-  // Aura level breakpoints mirrored from PWA
-  static const List<Map<String, dynamic>> _niveles = [
-    {'nivel': 1, 'nombre': 'Semilla',     'min': 0,    'max': 99},
-    {'nivel': 2, 'nombre': 'Chispa',      'min': 100,  'max': 299},
-    {'nivel': 3, 'nombre': 'Llama',       'min': 300,  'max': 599},
-    {'nivel': 4, 'nombre': 'Resplandor',  'min': 600,  'max': 999},
-    {'nivel': 5, 'nombre': 'Radiante',    'min': 1000, 'max': 1999},
-    {'nivel': 6, 'nombre': 'Luminoso',    'min': 2000, 'max': 4999},
-    {'nivel': 7, 'nombre': 'Estelar',     'min': 5000, 'max': 9999},
-    {'nivel': 8, 'nombre': 'Cósmico',     'min': 10000, 'max': 99999},
+  // Colores por nivel — blanco → azul cielo → azul royal → púrpura → dorado → rojo
+  static const _nivelColors = [
+    Color(0xFFE0E0E0), // Neutro     — gris claro
+    Color(0xFF87CEEB), // Despertar  — azul cielo
+    Color(0xFF4169E1), // Explorador — azul royal
+    Color(0xFF9B5DE5), // Influyente — púrpura
+    Color(0xFFFFD700), // Visionario — dorado
+    Color(0xFFE6670A), // Legendario — rojo/naranja
   ];
 
   @override
@@ -49,7 +46,7 @@ class _AIScreenState extends State<AIScreen> {
       final tickets = await TicketService.getMyTickets(profile.id);
       if (mounted) setState(() {
         _profile = profile;
-        _tickets = tickets.where((t) => t.statusUso == 'usado').toList();
+        _tickets = tickets;
         _loading = false;
       });
     } catch (e) {
@@ -116,19 +113,12 @@ class _AIScreenState extends State<AIScreen> {
     final auraColor = AuraLogic.calcularColorAura(p.intereses, p.auraNivel);
     final puntos = p.auraPuntos;
 
-    // Find current level
-    final currentLevel = _niveles.lastWhere(
-      (n) => puntos >= (n['min'] as int),
-      orElse: () => _niveles.first,
-    );
-    final nextLevel = _niveles.firstWhere(
-      (n) => (n['min'] as int) > puntos,
-      orElse: () => _niveles.last,
-    );
-    final progress = puntos >= (nextLevel['min'] as int)
-        ? 1.0
-        : (puntos - (currentLevel['min'] as int)) /
-          ((nextLevel['min'] as int) - (currentLevel['min'] as int)).toDouble();
+    // Usar los niveles reales de AuraLogic (Neutro, Despertar, Explorador…)
+    final nivelNombre   = AuraLogic.getNombreNivel(p.auraNivel);
+    final siguienteNom  = AuraLogic.nombreSiguienteNivel(p.auraNivel);
+    final faltan        = AuraLogic.puntosParaSiguiente(puntos);
+    final porcentaje    = AuraLogic.getPorcentajeNivel(puntos);
+    final arquetipo     = AuraLogic.inferirArquetipo(p.intereses);
 
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
@@ -161,8 +151,20 @@ class _AIScreenState extends State<AIScreen> {
                 Text('${puntos.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} pts',
                     style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.ink)),
                 const SizedBox(height: 4),
-                Text(currentLevel['nombre'] as String,
+                Text(nivelNombre,
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: auraColor)),
+                const SizedBox(height: 4),
+                // Arquetipo badge
+                if (p.intereses.isNotEmpty)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(arquetipo['emoji'] as String, style: const TextStyle(fontSize: 14)),
+                      const SizedBox(width: 4),
+                      Text(arquetipo['nombre'] as String,
+                          style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -183,11 +185,11 @@ class _AIScreenState extends State<AIScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Nivel ${currentLevel['nivel']}',
+                    Text('Nivel ${p.auraNivel} · $nivelNombre',
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink)),
-                    Text(puntos >= (nextLevel['min'] as int)
+                    Text(siguienteNom == null
                         ? 'Nivel máximo'
-                        : '${(nextLevel['min'] as int) - puntos} pts para Nivel ${nextLevel['nivel']}',
+                        : 'Faltan $faltan pts para $siguienteNom',
                         style: const TextStyle(fontSize: 12, color: AppColors.muted)),
                   ],
                 ),
@@ -195,7 +197,7 @@ class _AIScreenState extends State<AIScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: progress.clamp(0.0, 1.0),
+                    value: porcentaje / 100.0,
                     backgroundColor: AppColors.surface,
                     valueColor: AlwaysStoppedAnimation(auraColor),
                     minHeight: 6,
@@ -221,18 +223,18 @@ class _AIScreenState extends State<AIScreen> {
                 const Text('Progresión de niveles',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.ink)),
                 const SizedBox(height: 12),
-                ..._niveles.map((n) {
-                  final isActive = currentLevel['nivel'] == n['nivel'];
-                  final reached = puntos >= (n['min'] as int);
-                  final levelColor = _levelColor(n['nivel'] as int);
+                ...AuraLogic.niveles.map((n) {
+                  final isActive = p.auraNivel == n.nivel;
+                  final reached  = puntos >= n.min;
+                  final lvlColor = _nivelColors[(n.nivel - 1).clamp(0, _nivelColors.length - 1)];
                   return Container(
                     margin: const EdgeInsets.only(bottom: 6),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: isActive ? AppColors.primary.withOpacity(0.08) : Colors.transparent,
+                      color: isActive ? AppColors.primary.withValues(alpha: 0.08) : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: isActive ? AppColors.primary.withOpacity(0.25) : Colors.transparent,
+                        color: isActive ? AppColors.primary.withValues(alpha: 0.25) : Colors.transparent,
                       ),
                     ),
                     child: Row(
@@ -241,14 +243,16 @@ class _AIScreenState extends State<AIScreen> {
                           width: 10, height: 10,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: levelColor,
-                            boxShadow: isActive ? [BoxShadow(color: levelColor.withOpacity(0.6), blurRadius: 6)] : null,
+                            color: lvlColor,
+                            boxShadow: isActive
+                                ? [BoxShadow(color: lvlColor.withValues(alpha: 0.6), blurRadius: 6)]
+                                : null,
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            n['nombre'] as String,
+                            n.nombre,
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
@@ -256,14 +260,14 @@ class _AIScreenState extends State<AIScreen> {
                             ),
                           ),
                         ),
-                        Text('${(n['min'] as int).toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} pts',
+                        Text('${n.min} pts',
                             style: const TextStyle(fontSize: 11, color: AppColors.muted)),
                         const SizedBox(width: 8),
                         if (isActive)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.15),
+                              color: AppColors.primary.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: const Text('Actual',
@@ -302,48 +306,77 @@ class _AIScreenState extends State<AIScreen> {
               children: [
                 Row(
                   children: const [
-                    Icon(Icons.qr_code_2_rounded, size: 16, color: AppColors.primary),
+                    Icon(Icons.confirmation_number_rounded, size: 16, color: AppColors.primary),
                     SizedBox(width: 8),
-                    Text('Tickets escaneados',
+                    Text('Mis tickets',
                         style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.ink)),
                   ],
                 ),
                 const SizedBox(height: 12),
                 if (_tickets.isEmpty)
-                  const Text('Aún no has usado ningún ticket en un evento.',
+                  const Text('Aún no tienes tickets.',
                       style: TextStyle(color: AppColors.muted, fontSize: 13))
                 else
-                  ..._tickets.take(8).map((t) => Container(
-                    margin: const EdgeInsets.only(bottom: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_month_rounded, size: 14, color: Colors.green),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(t.tipo.isEmpty ? 'General' : t.tipo,
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                                      color: AppColors.ink)),
-                              Text('Evento · ${t.eventoId.length > 8 ? t.eventoId.substring(t.eventoId.length - 8) : t.eventoId}',
-                                  style: const TextStyle(fontSize: 10, color: AppColors.faint)),
-                            ],
+                  ..._tickets.take(10).map((t) {
+                    final isUsed      = t.statusUso == 'usado';
+                    final isCancelled = t.statusUso == 'cancelado';
+                    final statusColor = isUsed
+                        ? Colors.green
+                        : isCancelled
+                            ? AppColors.faint
+                            : AppColors.primary;
+                    final statusLabel = isUsed
+                        ? 'Usado'
+                        : isCancelled
+                            ? 'Cancelado'
+                            : 'Activo';
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isUsed ? Icons.check_circle_rounded
+                              : isCancelled ? Icons.cancel_rounded
+                              : Icons.qr_code_rounded,
+                            size: 14,
+                            color: statusColor,
                           ),
-                        ),
-                        if (t.fechaUso != null)
-                          Text(
-                            _formatDate(t.fechaUso!),
-                            style: const TextStyle(fontSize: 10, color: AppColors.muted),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(t.tipo.isEmpty ? 'General' : _capitalize(t.tipo),
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                        color: AppColors.ink)),
+                                Text(
+                                  t.fechaUso != null
+                                      ? 'Usado el ${_formatDate(t.fechaUso!)}'
+                                      : 'Creado el ${_parseCreatedAt(t.createdAt)}',
+                                  style: const TextStyle(fontSize: 10, color: AppColors.faint),
+                                ),
+                              ],
+                            ),
                           ),
-                      ],
-                    ),
-                  )),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(statusLabel,
+                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700,
+                                    color: statusColor)),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
               ],
             ),
           ),
@@ -385,22 +418,22 @@ class _AIScreenState extends State<AIScreen> {
     );
   }
 
-  Color _levelColor(int level) {
-    const colors = [
-      Color(0xFF8B7355), // Semilla — earth
-      Color(0xFFFFD700), // Chispa — yellow
-      Color(0xFFFF6B35), // Llama — orange
-      Color(0xFF9B5DE5), // Resplandor — purple
-      Color(0xFF00D4FF), // Radiante — cyan
-      Color(0xFF00FF88), // Luminoso — green
-      Color(0xFFFF5C5C), // Estelar — coral
-      Color(0xFFFFFFFF), // Cósmico — white
-    ];
-    return colors[(level - 1).clamp(0, colors.length - 1)];
-  }
-
   String _formatDate(DateTime dt) {
     const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     return '${dt.day} ${months[dt.month - 1]}';
+  }
+
+  String _capitalize(String s) =>
+      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+
+  String _parseCreatedAt(dynamic createdAt) {
+    try {
+      final dt = createdAt is DateTime
+          ? createdAt
+          : DateTime.parse(createdAt.toString());
+      return _formatDate(dt);
+    } catch (_) {
+      return '—';
+    }
   }
 }
