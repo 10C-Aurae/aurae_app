@@ -41,6 +41,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Aurae necesita acceso a la cámara para subir fotos de perfil y eventos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Aurae necesita acceso a tu galería para seleccionar imágenes.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Aurae necesita permiso para guardar imágenes en tu galería.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

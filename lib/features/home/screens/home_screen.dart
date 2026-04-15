@@ -7,6 +7,7 @@ import '../../profile/data/profile_service.dart';
 import '../../profile/models/user_profile.dart';
 import '../widgets/aura_display.dart';
 import '../widgets/next_stop_card.dart';
+import '../../notifications/widgets/notification_bell.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -74,18 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 shaderCallback: (b) => AppColors.brandGradient.createShader(b),
                 child: const Text('Aurae', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
               ),
-              actions: [
-                Container(
-                  margin: const EdgeInsets.only(right: 16),
-                  width: 38, height: 38,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.card,
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: const Icon(Icons.notifications_outlined, size: 18, color: AppColors.muted),
-                ),
-              ],
+              actions: const [NotificationBell()],
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(0.5),
                 child: Container(height: 0.5, color: AppColors.border),

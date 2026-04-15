@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_colors.dart';
 import '../../discover/data/stands_service.dart';
 import '../../../core/auth/token_service.dart';
+import '../../../shared/widgets/image_picker_field.dart';
 
 class AdminStandFormScreen extends StatefulWidget {
   final String eventId;
@@ -27,6 +28,7 @@ class _AdminStandFormScreenState extends State<AdminStandFormScreen> {
   bool _isActive = true;
   bool _tieneCola = false;
   bool _saving = false;
+  String? _token;
 
   @override
   void initState() {
@@ -39,6 +41,9 @@ class _AdminStandFormScreenState extends State<AdminStandFormScreen> {
     _responsibleController = TextEditingController(text: s?["responsable"] ?? "");
     _isActive = s?["is_active"] ?? true;
     _tieneCola = s?["tiene_cola"] ?? false;
+    _tokenService.getToken().then((t) {
+      if (mounted) setState(() => _token = t);
+    });
   }
 
   @override
@@ -112,7 +117,15 @@ class _AdminStandFormScreenState extends State<AdminStandFormScreen> {
               const SizedBox(height: 16),
               _buildTextField('Responsable', _responsibleController),
               const SizedBox(height: 16),
-              _buildTextField('Imagen URL', _imageController, hint: 'https://...'),
+              if (_token != null)
+                ImagePickerField(
+                  label: 'Imagen del stand',
+                  value: _imageController.text.isEmpty ? null : _imageController.text,
+                  token: _token!,
+                  onChange: (url) => setState(() => _imageController.text = url),
+                )
+              else
+                _buildTextField('Imagen URL', _imageController, hint: 'https://...'),
               const SizedBox(height: 24),
               _buildSwitchTile('Stand Activo', 'Visible para los asistentes', _isActive, (v) => setState(() => _isActive = v)),
               _buildSwitchTile('Turnos Virtuales (Cola)', 'Permitir al usuario unirse a una cola inteligente', _tieneCola, (v) => setState(() => _tieneCola = v)),

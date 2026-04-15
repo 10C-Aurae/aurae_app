@@ -6,6 +6,7 @@ import '../data/ticket_service.dart';
 import '../models/ticket.dart';
 import '../widgets/ticket_card.dart';
 import '../../discover/data/event_service.dart';
+import '../../notifications/widgets/notification_bell.dart';
 
 class TicketsScreen extends StatefulWidget {
   const TicketsScreen({super.key});
@@ -102,6 +103,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
               surfaceTintColor: Colors.transparent,
               elevation: 0,
               title: const Text('Mis Tickets', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.ink)),
+              actions: const [NotificationBell()],
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(0.5),
                 child: Container(height: 0.5, color: AppColors.border),

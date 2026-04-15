@@ -4,6 +4,7 @@ import '../data/event_service.dart';
 import '../models/event.dart';
 import '../widgets/event_card.dart';
 import 'event_detail_screen.dart';
+import '../../notifications/widgets/notification_bell.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -100,6 +101,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               surfaceTintColor: Colors.transparent,
               elevation: 0,
               title: const Text('Explorar eventos', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.ink)),
+              actions: const [NotificationBell()],
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(0.5),
                 child: Container(height: 0.5, color: AppColors.border),

@@ -6,6 +6,7 @@ import '../../discover/models/event.dart';
 import '../../discover/data/event_service.dart';
 import '../../../core/auth/token_service.dart';
 import '../widgets/location_search_field.dart';
+import '../../../shared/widgets/image_picker_field.dart';
 
 class AdminEventFormScreen extends StatefulWidget {
   final Event? event;
@@ -22,6 +23,7 @@ class _AdminEventFormScreenState extends State<AdminEventFormScreen> {
 
   bool loading = false;
   bool saving = false;
+  String? _token;
 
   // Controllers
   late TextEditingController _nameController;
@@ -82,6 +84,9 @@ class _AdminEventFormScreenState extends State<AdminEventFormScreen> {
       _isActive = ev.activo;
       _selectedArchetypes = List.from(ev.arquetiposDisponibles ?? []);
     }
+    _tokenService.getToken().then((t) {
+      if (mounted) setState(() => _token = t);
+    });
   }
 
   @override
@@ -207,7 +212,15 @@ class _AdminEventFormScreenState extends State<AdminEventFormScreen> {
               const SizedBox(height: 16),
               _buildTextField('Descripción', _descController, maxLines: 4, required: true),
               const SizedBox(height: 16),
-              _buildTextField('Imagen URL (Portada)', _imageController, hint: 'https://...'),
+              if (_token != null)
+                ImagePickerField(
+                  label: 'Imagen de portada',
+                  value: _imageController.text.isEmpty ? null : _imageController.text,
+                  token: _token!,
+                  onChange: (url) => setState(() => _imageController.text = url),
+                )
+              else
+                _buildTextField('Imagen URL (Portada)', _imageController, hint: 'https://...'),
               
               const SizedBox(height: 24),
               _sectionTitle('Lugar y tiempo'),

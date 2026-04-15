@@ -7,6 +7,7 @@ import '../../profile/data/profile_service.dart';
 import '../../profile/models/user_profile.dart';
 import '../../tickets/data/ticket_service.dart';
 import '../../tickets/models/ticket.dart';
+import '../../notifications/widgets/notification_bell.dart';
 
 class AIScreen extends StatefulWidget {
   const AIScreen({super.key});
@@ -81,6 +82,7 @@ class _AIScreenState extends State<AIScreen> {
                 icon: const Icon(Icons.refresh_rounded, color: AppColors.muted),
                 onPressed: _load,
               ),
+              const NotificationBell(),
             ],
           ),
           if (_loading)

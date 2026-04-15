@@ -10,6 +10,7 @@ import '../models/order.dart';
 import '../../orders/data/order_service.dart';
 import 'edit_profile_screen.dart';
 import '../../admin_events/screens/admin_event_list_screen.dart';
+import '../../notifications/widgets/notification_bell.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -171,6 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   loadProfile();
                 },
               ),
+              const NotificationBell(),
             ],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(0.5),

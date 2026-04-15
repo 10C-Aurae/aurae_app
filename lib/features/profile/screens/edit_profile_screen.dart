@@ -3,6 +3,7 @@ import '../../../theme/app_colors.dart';
 import '../models/user_profile.dart';
 import '../data/profile_service.dart';
 import '../../../core/auth/token_service.dart';
+import '../../../shared/widgets/image_picker_field.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final UserProfile profile;
@@ -16,6 +17,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController nameController;
   late TextEditingController avatarController;
   bool loading = false;
+  String? _token;
 
   final List<String> allInterests = [
     'Creativity', 'Technology', 'Nature', 'Music',
@@ -30,6 +32,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     nameController   = TextEditingController(text: widget.profile.nombre);
     avatarController = TextEditingController(text: widget.profile.avatarUrl);
     selectedInterests = List.from(widget.profile.intereses ?? []);
+    TokenService().getToken().then((t) {
+      if (mounted) setState(() => _token = t);
+    });
   }
 
   Future<void> saveProfile() async {
@@ -91,15 +96,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
             const SizedBox(height: 24),
 
-            TextField(
-              controller: avatarController,
-              style: const TextStyle(color: AppColors.ink),
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                labelText: 'Avatar URL',
-                prefixIcon: Icon(Icons.link_rounded),
-              ),
-            ),
+            if (_token != null)
+              ImagePickerField(
+                label: 'Foto de perfil',
+                value: avatarController.text.isEmpty ? null : avatarController.text,
+                token: _token!,
+                onChange: (url) => setState(() => avatarController.text = url),
+              )
+            else
+              const SizedBox(height: 8),
 
             const SizedBox(height: 14),
 
