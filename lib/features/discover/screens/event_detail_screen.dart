@@ -13,6 +13,7 @@ import '../../scan_qr/screens/scan_qr_screen.dart';
 import '../../chat/screens/event_chat_screen.dart';
 import '../widgets/chatbot_evento.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class EventDetailScreen extends StatefulWidget {
   final Event event;
@@ -179,11 +180,22 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     mainAxisSpacing: 8,
                     crossAxisSpacing: 8,
                     children: [
-                      _buildMetaItem(Icons.calendar_today_rounded, formattedStart, 'Inicio'),
-                      _buildMetaItem(Icons.timer_rounded, formattedEnd, 'Fin'),
-                      _buildMetaItem(Icons.place_rounded, event.ubicacionNombre, 'Ubicación'),
-                      if (event.capacidadMax != null)
-                        _buildMetaItem(Icons.people_alt_rounded, '${event.capacidadMax}', 'Capacidad'),
+                      _buildMetaItem(
+                        Icons.calendar_today_rounded, formattedStart, 'Inicio',
+                        onTap: () => _addToCalendar(event),
+                      ),
+                      _buildMetaItem(
+                        Icons.timer_rounded, formattedEnd, 'Fin',
+                      ),
+                      _buildMetaItem(
+                        Icons.place_rounded, event.ubicacionNombre, 'Ubicación',
+                        onTap: () => _openMaps(event.ubicacionNombre),
+                      ),
+                      _buildMetaItem(
+                        Icons.people_alt_rounded,
+                        (event.capacidadMax == null || event.capacidadMax == 0) ? 'Ilimitada' : '${event.capacidadMax}',
+                        'Capacidad',
+                      ),
                     ],
                   ),
 
@@ -338,13 +350,44 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     );
   }
 
-  Widget _buildMetaItem(IconData icon, String text, String label) {
-    return Container(
+  void _addToCalendar(Event event) {
+    final title = Uri.encodeComponent(event.nombre);
+    final location = Uri.encodeComponent(event.ubicacionNombre);
+
+    // Android: intent to calendar; iOS: calshow scheme
+    final uri = Uri.parse(
+      'https://calendar.google.com/calendar/render?action=TEMPLATE'
+      '&text=$title'
+      '&dates=${_fmtGcal(event.fechaInicio)}/${_fmtGcal(event.fechaFin)}'
+      '&location=$location',
+    );
+    launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  String _fmtGcal(DateTime dt) {
+    final u = dt.toUtc();
+    return '${u.year.toString().padLeft(4,'0')}'
+           '${u.month.toString().padLeft(2,'0')}'
+           '${u.day.toString().padLeft(2,'0')}'
+           'T${u.hour.toString().padLeft(2,'0')}'
+           '${u.minute.toString().padLeft(2,'0')}00Z';
+  }
+
+  void _openMaps(String location) {
+    final q = Uri.encodeComponent(location);
+    launchUrl(
+      Uri.parse('https://www.google.com/maps/search/?api=1&query=$q'),
+      mode: LaunchMode.externalApplication,
+    );
+  }
+
+  Widget _buildMetaItem(IconData icon, String text, String label, {VoidCallback? onTap}) {
+    final content = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: onTap != null ? AppColors.primary.withValues(alpha: 0.3) : AppColors.border),
       ),
       child: Row(
         children: [
@@ -360,9 +403,13 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               ],
             ),
           ),
+          if (onTap != null)
+            const Icon(Icons.open_in_new_rounded, size: 12, color: AppColors.primary),
         ],
       ),
     );
+    if (onTap != null) return GestureDetector(onTap: onTap, child: content);
+    return content;
   }
 
   Widget _buildToolTile(IconData icon, String title, String sub, VoidCallback onTap) {

@@ -32,7 +32,7 @@ class _AuraFlowScreenState extends State<AuraFlowScreen> {
   @override
   void initState() {
     super.initState();
-    _generarRuta();
+    _cargarRuta();
   }
 
   @override
@@ -42,14 +42,15 @@ class _AuraFlowScreenState extends State<AuraFlowScreen> {
     super.dispose();
   }
 
-  Future<void> _generarRuta() async {
+  Future<void> _cargarRuta({bool forzar = false}) async {
     setState(() { _loading = true; _error = null; });
     try {
       final token = await TokenService().getToken();
       if (token == null) throw Exception('Sin sesión');
-      final ruta = await _service.recomendar(token, widget.eventoId);
+      final ruta = forzar
+          ? await _service.regenerarRuta(token, widget.eventoId)
+          : await _service.obtenerRuta(token, widget.eventoId);
       if (mounted) setState(() { _ruta = ruta; _loading = false; });
-      // Load chat history
       _loadHistorial(token);
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
@@ -133,7 +134,7 @@ class _AuraFlowScreenState extends State<AuraFlowScreen> {
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: AppColors.muted),
             tooltip: 'Regenerar ruta',
-            onPressed: _loading ? null : _generarRuta,
+            onPressed: _loading ? null : () => _cargarRuta(forzar: true),
           ),
         ],
       ),
@@ -330,7 +331,7 @@ class _AuraFlowScreenState extends State<AuraFlowScreen> {
             Text(_error!, style: const TextStyle(color: AppColors.muted), textAlign: TextAlign.center),
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              onPressed: _generarRuta,
+              onPressed: () => _cargarRuta(forzar: true),
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Reintentar'),
             ),
