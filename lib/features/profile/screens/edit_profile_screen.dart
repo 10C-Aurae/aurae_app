@@ -3,6 +3,7 @@ import '../../../theme/app_colors.dart';
 import '../models/user_profile.dart';
 import '../data/profile_service.dart';
 import '../../../core/auth/token_service.dart';
+import '../../../core/utils/aura_logic.dart';
 import '../../../shared/widgets/image_picker_field.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -19,9 +20,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool loading = false;
   String? _token;
 
-  final List<String> allInterests = [
-    'Creativity', 'Technology', 'Nature', 'Music',
-    'Fitness', 'Business', 'Art', 'Travel', 'Personal Growth', 'Gaming',
+  static const List<Map<String, String>> _interestItems = [
+    {'id': 'tecnologia',      'label': 'Tecnología'},
+    {'id': 'musica',          'label': 'Música'},
+    {'id': 'arte',            'label': 'Arte'},
+    {'id': 'gaming',          'label': 'Gaming'},
+    {'id': 'negocios',        'label': 'Negocios'},
+    {'id': 'gastronomia',     'label': 'Gastronomía'},
+    {'id': 'deportes',        'label': 'Deportes'},
+    {'id': 'networking',      'label': 'Networking'},
+    {'id': 'innovacion',      'label': 'Innovación'},
+    {'id': 'sustentabilidad', 'label': 'Sustentabilidad'},
+    {'id': 'fotografia',      'label': 'Fotografía'},
+    {'id': 'moda',            'label': 'Moda'},
+    {'id': 'cine',            'label': 'Cine'},
+    {'id': 'viajes',          'label': 'Viajes'},
+    {'id': 'bienestar',       'label': 'Bienestar'},
+    {'id': 'ciencia',         'label': 'Ciencia'},
+    {'id': 'literatura',      'label': 'Literatura'},
+    {'id': 'danza',           'label': 'Danza'},
+    {'id': 'podcasts',        'label': 'Podcasts'},
+    {'id': 'educacion',       'label': 'Educación'},
+    {'id': 'finanzas',        'label': 'Finanzas'},
+    {'id': 'teatro',          'label': 'Teatro'},
   ];
 
   List<String> selectedInterests = [];
@@ -138,10 +159,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
             Wrap(
               spacing: 10, runSpacing: 10,
-              children: allInterests.map((interest) {
-                final selected = selectedInterests.contains(interest);
+              children: _interestItems.map((item) {
+                final id = item['id']!;
+                final label = item['label']!;
+                final selected = selectedInterests.contains(id);
                 return GestureDetector(
-                  onTap: () => _toggle(interest),
+                  onTap: () => _toggle(id),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -151,7 +174,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: selected ? Colors.transparent : AppColors.border),
                     ),
-                    child: Text(interest,
+                    child: Text(label,
                         style: TextStyle(
                           fontSize: 13, fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                           color: selected ? Colors.white : AppColors.muted,
@@ -161,7 +184,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               }).toList(),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 16),
+
+            // ── Arquetipo preview ─────────────────────────────
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SizeTransition(sizeFactor: animation, child: child),
+              ),
+              child: selectedInterests.isEmpty
+                  ? const SizedBox.shrink(key: ValueKey('empty'))
+                  : _ArchetypePreview(
+                      key: ValueKey(selectedInterests.join(',')),
+                      intereses: selectedInterests,
+                    ),
+            ),
+
+            const SizedBox(height: 28),
 
             SizedBox(
               width: double.infinity, height: 50,
@@ -188,6 +228,63 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             const SizedBox(height: 32),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Arquetipo preview widget ────────────────────────────────────────────────
+
+class _ArchetypePreview extends StatelessWidget {
+  final List<String> intereses;
+  const _ArchetypePreview({super.key, required this.intereses});
+
+  @override
+  Widget build(BuildContext context) {
+    final arch = AuraLogic.inferirArquetipo(intereses);
+    final emoji = arch['emoji'] as String;
+    final nombre = arch['nombre'] as String;
+    final desc = arch['desc'] as String;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 26)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 13, color: AppColors.ink),
+                    children: [
+                      const TextSpan(text: 'Tu perfil: '),
+                      TextSpan(
+                        text: nombre,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  desc,
+                  style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_colors.dart';
 import '../data/auth_service.dart';
+import '../../../core/utils/aura_logic.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -17,9 +18,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool loading = false;
   List<String> selectedInterests = [];
 
-  final List<String> interests = [
-    'Meditation', 'Spirituality', 'Creativity', 'Mindfulness',
-    'Personal Growth', 'Technology', 'Nature', 'Philosophy',
+  // IDs en español — deben coincidir con la PWA y el mapa interesAHue
+  static const List<Map<String, String>> _interestItems = [
+    {'id': 'tecnologia',      'label': 'Tecnología'},
+    {'id': 'musica',          'label': 'Música'},
+    {'id': 'arte',            'label': 'Arte'},
+    {'id': 'gaming',          'label': 'Gaming'},
+    {'id': 'negocios',        'label': 'Negocios'},
+    {'id': 'gastronomia',     'label': 'Gastronomía'},
+    {'id': 'deportes',        'label': 'Deportes'},
+    {'id': 'networking',      'label': 'Networking'},
+    {'id': 'innovacion',      'label': 'Innovación'},
+    {'id': 'sustentabilidad', 'label': 'Sustentabilidad'},
+    {'id': 'fotografia',      'label': 'Fotografía'},
+    {'id': 'moda',            'label': 'Moda'},
+    {'id': 'cine',            'label': 'Cine'},
+    {'id': 'viajes',          'label': 'Viajes'},
+    {'id': 'bienestar',       'label': 'Bienestar'},
+    {'id': 'ciencia',         'label': 'Ciencia'},
+    {'id': 'literatura',      'label': 'Literatura'},
+    {'id': 'danza',           'label': 'Danza'},
+    {'id': 'podcasts',        'label': 'Podcasts'},
+    {'id': 'educacion',       'label': 'Educación'},
+    {'id': 'finanzas',        'label': 'Finanzas'},
+    {'id': 'teatro',          'label': 'Teatro'},
   ];
 
   Future<void> register() async {
@@ -138,10 +160,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
-                  children: interests.map((interest) {
-                    final selected = selectedInterests.contains(interest);
+                  children: _interestItems.map((item) {
+                    final id = item['id']!;
+                    final label = item['label']!;
+                    final selected = selectedInterests.contains(id);
                     return GestureDetector(
-                      onTap: () => _toggle(interest),
+                      onTap: () => _toggle(id),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -160,7 +184,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ] : [],
                         ),
                         child: Text(
-                          interest,
+                          label,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
@@ -172,7 +196,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   }).toList(),
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 16),
+
+                // ── Arquetipo preview ─────────────────────────
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SizeTransition(sizeFactor: animation, child: child),
+                  ),
+                  child: selectedInterests.isEmpty
+                      ? const SizedBox.shrink(key: ValueKey('empty'))
+                      : _ArchetypePreview(
+                          key: ValueKey(selectedInterests.length),
+                          intereses: selectedInterests,
+                        ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // ── Contador ──────────────────────────────────
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Text(
+                    selectedInterests.length < 3
+                        ? 'Selecciona ${3 - selectedInterests.length} más'
+                        : '${selectedInterests.length} seleccionados ✓',
+                    key: ValueKey(selectedInterests.length),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: selectedInterests.length >= 3
+                          ? AppColors.primary
+                          : AppColors.faint,
+                      fontWeight: selectedInterests.length >= 3
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+                const SizedBox(height: 28),
 
                 SizedBox(
                   width: double.infinity,
@@ -206,6 +270,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
 
                 const SizedBox(height: 32),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Arquetipo preview widget ────────────────────────────────────────────────
+
+class _ArchetypePreview extends StatelessWidget {
+  final List<String> intereses;
+  const _ArchetypePreview({super.key, required this.intereses});
+
+  @override
+  Widget build(BuildContext context) {
+    final arch = AuraLogic.inferirArquetipo(intereses);
+    final emoji = arch['emoji'] as String;
+    final nombre = arch['nombre'] as String;
+    final desc = arch['desc'] as String;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 26)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 13, color: AppColors.ink),
+                    children: [
+                      const TextSpan(text: 'Tu perfil: '),
+                      TextSpan(
+                        text: nombre,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  desc,
+                  style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                ),
               ],
             ),
           ),

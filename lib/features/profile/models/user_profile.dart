@@ -32,32 +32,39 @@ class UserProfile {
     this.arquetipoNombre,
   });
 
-  // Archetypes logic from PWA
+  // Arquetipos — espejo exacto de Registro.jsx en la PWA (12 arquetipos)
   static const _archetypes = [
-    {'id': 'techie', 'nombre': 'Explorador Tecnológico', 'categorias': ['tecnologia', 'innovacion']},
-    {'id': 'foodie', 'nombre': 'Maestro Gastronómico', 'categorias': ['gastronomia']},
-    {'id': 'networker', 'nombre': 'Networking Master', 'categorias': ['negocios', 'networking']},
-    {'id': 'artista', 'nombre': 'Alma Creativa', 'categorias': ['arte', 'musica']},
-    {'id': 'gamer', 'nombre': 'Espíritu Gamer', 'categorias': ['gaming']},
-    {'id': 'eco', 'nombre': 'Guardián Verde', 'categorias': ['sustentabilidad']},
+    {'nombre': 'Techie',         'categorias': ['tecnologia', 'innovacion', 'gaming', 'ciencia']},
+    {'nombre': 'Creativo',       'categorias': ['arte', 'musica', 'fotografia', 'cine', 'teatro', 'danza']},
+    {'nombre': 'Networker',      'categorias': ['networking', 'negocios', 'innovacion', 'podcasts', 'educacion']},
+    {'nombre': 'Gourmet',        'categorias': ['gastronomia', 'sustentabilidad', 'viajes', 'bienestar']},
+    {'nombre': 'Atleta',         'categorias': ['deportes', 'bienestar', 'danza', 'sustentabilidad']},
+    {'nombre': 'Estratega',      'categorias': ['negocios', 'gaming', 'networking', 'finanzas']},
+    {'nombre': 'Eco-consciente', 'categorias': ['sustentabilidad', 'gastronomia', 'deportes', 'bienestar', 'ciencia']},
+    {'nombre': 'Artista',        'categorias': ['arte', 'musica', 'teatro', 'danza', 'fotografia', 'cine', 'literatura']},
+    {'nombre': 'Viajero',        'categorias': ['viajes', 'gastronomia', 'fotografia', 'literatura', 'sustentabilidad']},
+    {'nombre': 'Pensador',       'categorias': ['literatura', 'ciencia', 'educacion', 'podcasts', 'cine']},
+    {'nombre': 'Trendsetter',    'categorias': ['moda', 'arte', 'fotografia', 'musica', 'gaming']},
+    {'nombre': 'Explorador',     'categorias': <String>[]},
   ];
 
   static String? _inferArchetype(List<String> userInterests) {
-    if (userInterests.isEmpty) return null;
-    final interestsNorm = userInterests.map((i) => i.toLowerCase().trim()).toList();
-    
-    Map<String, dynamic>? bestArch;
+    if (userInterests.isEmpty) return 'Explorador';
+    final norm = userInterests.map((i) => i.toLowerCase().trim()).toSet();
+
+    Map<String, dynamic>? best;
     int bestScore = 0;
 
     for (final arch in _archetypes) {
-      final categories = List<String>.from(arch['categorias'] as List);
-      final score = categories.where((cat) => interestsNorm.contains(cat.toLowerCase())).length;
+      final cats = List<String>.from(arch['categorias'] as List);
+      if (cats.isEmpty) continue;
+      final score = cats.where((c) => norm.contains(c)).length;
       if (score > bestScore) {
         bestScore = score;
-        bestArch = arch;
+        best = arch;
       }
     }
-    return bestArch?['nombre'] as String?;
+    return bestScore > 0 ? best!['nombre'] as String : 'Explorador';
   }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {

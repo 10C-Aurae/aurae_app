@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_colors.dart';
 import '../models/event.dart';
 import '../../tickets/screens/buy_ticket_screen.dart';
-
-
+import '../../../core/auth/token_service.dart';
+import '../../profile/data/profile_service.dart';
+import '../../tickets/data/ticket_service.dart';
 import '../data/stands_service.dart';
 import '../widgets/stand_card.dart';
 import '../../concierge/screens/concierge_screen.dart';
 import '../../aura_flow/screens/aura_flow_screen.dart';
 import '../../scan_qr/screens/scan_qr_screen.dart';
 import '../../chat/screens/event_chat_screen.dart';
+import '../widgets/chatbot_evento.dart';
 import 'package:intl/intl.dart';
 
 class EventDetailScreen extends StatefulWidget {
@@ -25,11 +27,34 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   bool loading = false;
   List<dynamic> stands = [];
   bool standsLoading = true;
+  bool hasTicket = false;
+  bool checkingTicket = true;
 
   @override
   void initState() {
     super.initState();
     _loadStands();
+    _checkTicketOwnership();
+  }
+
+  Future<void> _checkTicketOwnership() async {
+    try {
+      final token = await TokenService().getToken();
+      if (token == null) return;
+      final user = await ProfileService().getMyProfile(token);
+      final tickets = await TicketService.getMyTickets(user.id);
+      
+      final ownsTicket = tickets.any((t) => t.eventoId == widget.event.id && t.statusUso != 'cancelado');
+      
+      if (mounted) {
+        setState(() {
+          hasTicket = ownsTicket;
+          checkingTicket = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => checkingTicket = false);
+    }
   }
 
   Future<void> _loadStands() async {
@@ -58,6 +83,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      floatingActionButton: ChatbotEvento(
+        eventoId: event.id,
+        eventoNombre: event.nombre,
+      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -228,33 +257,66 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   const SizedBox(height: 40),
 
                   // Gradient buy button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 58,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: loading ? null : AppColors.brandGradient,
-                        color: loading ? AppColors.faint : null,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: loading ? [] : [
-                          BoxShadow(color: AppColors.primary.withOpacity(0.35), blurRadius: 20, offset: const Offset(0, 10)),
-                        ],
-                      ),
-                      child: ElevatedButton.icon(
-                        onPressed: loading ? null : buyTicket,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  if (checkingTicket)
+                    const Center(child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    ))
+                  else if (hasTicket)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 58,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: AppColors.card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.primary.withOpacity(0.5), width: 2),
                         ),
-                        icon: loading
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Icon(Icons.confirmation_number_rounded, color: Colors.white),
-                        label: Text(loading ? 'Procesando...' : 'Obtener Ticket',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Ya tienes un ticket para este evento. Búscalo en Mis Tickets.')),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          icon: const Icon(Icons.check_circle_rounded, color: AppColors.primary),
+                          label: const Text('Ya tienes tu ticket',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                        ),
+                      ),
+                    )
+                  else
+                    SizedBox(
+                      width: double.infinity,
+                      height: 58,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: loading ? null : AppColors.brandGradient,
+                          color: loading ? AppColors.faint : null,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: loading ? [] : [
+                            BoxShadow(color: AppColors.primary.withOpacity(0.35), blurRadius: 20, offset: const Offset(0, 10)),
+                          ],
+                        ),
+                        child: ElevatedButton.icon(
+                          onPressed: loading ? null : buyTicket,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          icon: loading
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.confirmation_number_rounded, color: Colors.white),
+                          label: Text(loading ? 'Procesando...' : 'Obtener Ticket',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),

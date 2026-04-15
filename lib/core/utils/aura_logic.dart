@@ -86,4 +86,75 @@ class AuraLogic {
       };
     }).toList();
   }
+
+  /// Nombre del nivel dado su número (1-6).
+  static String getNombreNivel(int nivel) {
+    return niveles.firstWhere((n) => n.nivel == nivel, orElse: () => niveles.first).nombre;
+  }
+
+  /// Porcentaje de progreso dentro del nivel actual (0–100).
+  static int getPorcentajeNivel(int puntos) {
+    final sorted = [...niveles]..sort((a, b) => b.min.compareTo(a.min));
+    final current = sorted.firstWhere((n) => puntos >= n.min, orElse: () => niveles.first);
+    final currentIndex = niveles.indexWhere((n) => n.nivel == current.nivel);
+    if (currentIndex == niveles.length - 1) return 100;
+    final next = niveles[currentIndex + 1];
+    final rango = next.min - current.min;
+    final progreso = puntos - current.min;
+    return (progreso / rango * 100).floor().clamp(0, 100);
+  }
+
+  /// Puntos que faltan para el siguiente nivel, o 0 si ya es Legendario.
+  static int puntosParaSiguiente(int puntos) {
+    final sorted = [...niveles]..sort((a, b) => b.min.compareTo(a.min));
+    final current = sorted.firstWhere((n) => puntos >= n.min, orElse: () => niveles.first);
+    final currentIndex = niveles.indexWhere((n) => n.nivel == current.nivel);
+    if (currentIndex == niveles.length - 1) return 0;
+    return niveles[currentIndex + 1].min - puntos;
+  }
+
+  /// Nombre del siguiente nivel, o null si ya es Legendario.
+  static String? nombreSiguienteNivel(int nivel) {
+    final idx = niveles.indexWhere((n) => n.nivel == nivel);
+    if (idx == -1 || idx == niveles.length - 1) return null;
+    return niveles[idx + 1].nombre;
+  }
+
+  // ── Arquetipos (espejo de Registro.jsx en PWA) ───────────────────────────
+
+  static const List<Map<String, dynamic>> arquetipos = [
+    {'nombre': 'Techie',         'afinidades': ['tecnologia', 'innovacion', 'gaming', 'ciencia'],                          'emoji': '⚡', 'desc': 'Explorador de lo digital y lo nuevo'},
+    {'nombre': 'Creativo',       'afinidades': ['arte', 'musica', 'fotografia', 'cine', 'teatro', 'danza'],                'emoji': '🎨', 'desc': 'Tu mirada transforma el espacio'},
+    {'nombre': 'Networker',      'afinidades': ['networking', 'negocios', 'innovacion', 'podcasts', 'educacion'],          'emoji': '🤝', 'desc': 'Conectas personas e ideas'},
+    {'nombre': 'Gourmet',        'afinidades': ['gastronomia', 'sustentabilidad', 'viajes', 'bienestar'],                  'emoji': '🍽️', 'desc': 'Vives para experiencias con sabor'},
+    {'nombre': 'Atleta',         'afinidades': ['deportes', 'bienestar', 'danza', 'sustentabilidad'],                      'emoji': '🏃', 'desc': 'Energía en movimiento'},
+    {'nombre': 'Estratega',      'afinidades': ['negocios', 'gaming', 'networking', 'finanzas'],                           'emoji': '♟️', 'desc': 'Siempre tres pasos adelante'},
+    {'nombre': 'Eco-consciente', 'afinidades': ['sustentabilidad', 'gastronomia', 'deportes', 'bienestar', 'ciencia'],    'emoji': '🌿', 'desc': 'El mundo importa, y lo cuidas'},
+    {'nombre': 'Artista',        'afinidades': ['arte', 'musica', 'teatro', 'danza', 'fotografia', 'cine', 'literatura'], 'emoji': '🎭', 'desc': 'Sientes, creas, inspiras'},
+    {'nombre': 'Viajero',        'afinidades': ['viajes', 'gastronomia', 'fotografia', 'literatura', 'sustentabilidad'],  'emoji': '✈️', 'desc': 'El mundo es tu escenario'},
+    {'nombre': 'Pensador',       'afinidades': ['literatura', 'ciencia', 'educacion', 'podcasts', 'cine'],                'emoji': '📚', 'desc': 'Buscas profundidad en cada experiencia'},
+    {'nombre': 'Trendsetter',    'afinidades': ['moda', 'arte', 'fotografia', 'musica', 'gaming'],                        'emoji': '✨', 'desc': 'Marcas tendencia sin proponértelo'},
+    {'nombre': 'Explorador',     'afinidades': <String>[],                                                                'emoji': '🧭', 'desc': 'Curioso de todo, límite de nada'},
+  ];
+
+  /// Infiere el arquetipo con más afinidades con los intereses del usuario.
+  /// Devuelve 'Explorador' si no hay match.
+  static Map<String, dynamic> inferirArquetipo(List<String> intereses) {
+    if (intereses.isEmpty) {
+      return arquetipos.last; // Explorador
+    }
+    final norm = intereses.map((i) => i.toLowerCase().trim()).toSet();
+    Map<String, dynamic>? mejor;
+    int mejorScore = 0;
+    for (final a in arquetipos) {
+      final afinidades = List<String>.from(a['afinidades'] as List);
+      if (afinidades.isEmpty) continue;
+      final score = afinidades.where((cat) => norm.contains(cat)).length;
+      if (score > mejorScore) {
+        mejorScore = score;
+        mejor = a;
+      }
+    }
+    return mejorScore > 0 ? mejor! : arquetipos.last;
+  }
 }
