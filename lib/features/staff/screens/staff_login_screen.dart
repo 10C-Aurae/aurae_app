@@ -44,15 +44,18 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
       final authData = jsonDecode(authResp.body);
       final token = authData['access_token'] as String;
 
-      // Check role
-      final parts = token.split('.');
-      if (parts.length == 3) {
-        final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
-        final data = jsonDecode(payload) as Map<String, dynamic>;
-        final role = data['role'] ?? data['rol'] ?? '';
-        if (role != 'staff_stand') {
-          throw Exception('Esta sesión es exclusiva para staff de stands.');
-        }
+      // El JWT solo lleva sub+exp; el role está en /auth/me
+      final meResp = await http.get(
+        Uri.parse('${Env.baseUrl}/api/v1/auth/me'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (meResp.statusCode != 200) {
+        throw Exception('No se pudo verificar el perfil.');
+      }
+      final me = jsonDecode(meResp.body) as Map<String, dynamic>;
+      final role = me['role'] ?? '';
+      if (role != 'staff_stand') {
+        throw Exception('Esta sesión es exclusiva para staff de stands.');
       }
 
       await TokenService().saveToken(token);
