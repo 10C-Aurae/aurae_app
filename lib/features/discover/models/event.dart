@@ -10,6 +10,8 @@ class Event {
   final DateTime fechaFin;
   final bool esGratuito;
   final double precio;
+  final List<String> categorias;
+  final bool activo;
 
   Event({
     required this.id,
@@ -22,6 +24,8 @@ class Event {
     required this.fechaFin,
     required this.esGratuito,
     required this.precio,
+    required this.categorias,
+    required this.activo,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -39,6 +43,8 @@ class Event {
       fechaFin: DateTime.parse(json["fecha_fin"]),
       esGratuito: json["es_gratuito"] ?? true,
       precio: (json["precio"] ?? 0).toDouble(),
+      categorias: List<String>.from(json["categorias"] ?? []),
+      activo: json["is_active"] ?? true,
     );
   }
 }

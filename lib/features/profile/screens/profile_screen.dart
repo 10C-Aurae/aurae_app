@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_colors.dart';
 import '../../../core/auth/token_service.dart';
 import '../../../core/utils/color_utils.dart';
+import '../../../core/utils/aura_logic.dart';
 import '../data/profile_service.dart';
 import '../models/user_profile.dart';
 import '../models/ble_token.dart';
@@ -126,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    final auraColor = ColorUtils.hexToColor(profile!.auraColorActual);
+    final auraColor = AuraLogic.calcularColorAura(profile!.intereses, profile!.auraNivel);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
