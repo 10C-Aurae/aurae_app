@@ -1,3 +1,13 @@
+import 'package:flutter/material.dart';
+
+class Archetype {
+  final String id;
+  final String nombre;
+  final IconData iconData; // we'll use mapped icons in the UI
+
+  Archetype(this.id, this.nombre, this.iconData);
+}
+
 class UserProfile {
 
   final String id;
@@ -8,6 +18,7 @@ class UserProfile {
   final String auraColorActual;
   final int auraNivel;
   final List<String> intereses;
+  final String? arquetipoNombre;
 
   UserProfile({
     required this.id,
@@ -18,7 +29,36 @@ class UserProfile {
     required this.auraColorActual,
     required this.auraNivel,
     required this.intereses,
+    this.arquetipoNombre,
   });
+
+  // Archetypes logic from PWA
+  static const _archetypes = [
+    {'id': 'techie', 'nombre': 'Explorador Tecnológico', 'categorias': ['tecnologia', 'innovacion']},
+    {'id': 'foodie', 'nombre': 'Maestro Gastronómico', 'categorias': ['gastronomia']},
+    {'id': 'networker', 'nombre': 'Networking Master', 'categorias': ['negocios', 'networking']},
+    {'id': 'artista', 'nombre': 'Alma Creativa', 'categorias': ['arte', 'musica']},
+    {'id': 'gamer', 'nombre': 'Espíritu Gamer', 'categorias': ['gaming']},
+    {'id': 'eco', 'nombre': 'Guardián Verde', 'categorias': ['sustentabilidad']},
+  ];
+
+  static String? _inferArchetype(List<String> userInterests) {
+    if (userInterests.isEmpty) return null;
+    final interestsNorm = userInterests.map((i) => i.toLowerCase().trim()).toList();
+    
+    Map<String, dynamic>? bestArch;
+    int bestScore = 0;
+
+    for (final arch in _archetypes) {
+      final categories = List<String>.from(arch['categorias'] as List);
+      final score = categories.where((cat) => interestsNorm.contains(cat.toLowerCase())).length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestArch = arch;
+      }
+    }
+    return bestArch?['nombre'] as String?;
+  }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
 

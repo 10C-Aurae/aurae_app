@@ -33,4 +33,23 @@ class ApiClient {
       body: jsonEncode(body),
     );
   }
+
+  static Future<http.Response> post(
+      String endpoint,
+      String token,
+      Map<String, dynamic> body) {
+    return http.post(
+      Uri.parse("$baseUrl$endpoint"),
+      headers: headers(token),
+      body: jsonEncode(body),
+    );
+  }
+
+  static Future<http.Response> delete(
+      String endpoint, String token) {
+    return http.delete(
+      Uri.parse("$baseUrl$endpoint"),
+      headers: headers(token),
+    );
+  }
 }

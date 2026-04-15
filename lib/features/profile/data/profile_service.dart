@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../../core/api/api_client.dart';
-import '../../../core/config/env.dart';
 import '../models/user_profile.dart';
+import '../models/ble_token.dart';
 
 class ProfileService {
 
@@ -60,15 +60,45 @@ class ProfileService {
     print("UPDATE PROFILE BODY: ${response.body}");
 
     if (response.statusCode == 200) {
-
       final data = jsonDecode(response.body);
-
       return UserProfile.fromJson(data);
-
     } else {
-
       throw Exception("Error updating profile");
     }
   }
 
+  /// =========================
+  /// 🔹 GET BLE TOKEN
+  /// =========================
+  Future<BleToken> getBleToken(String token) async {
+    final response = await ApiClient.get("/usuarios/me/ble-token", token);
+    if (response.statusCode == 200) {
+      return BleToken.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception("Error loading BLE token");
+    }
+  }
+
+  /// =========================
+  /// 🔹 ROTATE BLE TOKEN
+  /// =========================
+  Future<BleToken> rotateBleToken(String token) async {
+    final response = await ApiClient.post("/usuarios/me/ble-token/rotar", token, {});
+    if (response.statusCode == 200) {
+      return BleToken.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception("Error rotating BLE token");
+    }
+  }
+
+  /// =========================
+  /// 🔹 DELETE ACCOUNT
+  /// =========================
+  Future<void> deleteAccount(String token, String userId) async {
+    final response = await ApiClient.delete("/usuarios/$userId", token);
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      final error = jsonDecode(response.body)['detail'] ?? "Error eliminando cuenta";
+      throw Exception(error);
+    }
+  }
 }
