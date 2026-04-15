@@ -216,8 +216,9 @@ class _AdminEventCard extends StatelessWidget {
           Divider(height: 1, color: AppColors.border),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 0,
               children: [
                 TextButton.icon(
                   onPressed: () => Navigator.push(
@@ -257,7 +258,7 @@ class _AdminEventCard extends StatelessWidget {
                   onPressed: onDelete,
                   icon: const Icon(Icons.delete_outline_rounded, size: 16),
                   label: const Text('Eliminar', style: TextStyle(fontSize: 13)),
-                  style: TextButton.styleFrom(foregroundColor: Colors.redAccent.withOpacity(0.8)),
+                  style: TextButton.styleFrom(foregroundColor: Colors.redAccent.withValues(alpha: 0.8)),
                 ),
               ],
             ),

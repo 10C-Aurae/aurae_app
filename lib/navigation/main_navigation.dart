@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 import '../features/discover/screens/discover_screen.dart';
-import '../features/ai/screens/ai_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../features/tickets/screens/ticket_screen.dart';
@@ -16,8 +15,6 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
-  // Incrementar esta key reconstruye AIScreen y dispara su _load()
-  int _aiKey = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +22,6 @@ class _MainNavigationState extends State<MainNavigation> {
       backgroundColor: AppColors.bg,
       body: [
         const DiscoverScreen(),
-        AIScreen(key: ValueKey(_aiKey)),
         const TicketsScreen(),
         const ProfileScreen(),
         const SettingsScreen(),
@@ -43,11 +39,10 @@ class _MainNavigationState extends State<MainNavigation> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _NavItem(icon: Icons.explore_rounded,        label: 'Discover', index: 0, currentIndex: _currentIndex, onTap: _onTap),
-                _NavItem(icon: Icons.psychology_rounded,     label: 'AI',       index: 1, currentIndex: _currentIndex, onTap: _onTap),
-                _NavItem(icon: Icons.confirmation_num_rounded, label: 'Tickets', index: 2, currentIndex: _currentIndex, onTap: _onTap),
-                _NavItem(icon: Icons.person_rounded,         label: 'Perfil',   index: 3, currentIndex: _currentIndex, onTap: _onTap),
-                _NavItem(icon: Icons.settings_rounded,       label: 'Settings', index: 4, currentIndex: _currentIndex, onTap: _onTap),
+                _NavItem(icon: Icons.explore_rounded,          label: 'Discover', index: 0, currentIndex: _currentIndex, onTap: _onTap),
+                _NavItem(icon: Icons.confirmation_num_rounded, label: 'Tickets',  index: 1, currentIndex: _currentIndex, onTap: _onTap),
+                _NavItem(icon: Icons.person_rounded,           label: 'Perfil',   index: 2, currentIndex: _currentIndex, onTap: _onTap),
+                _NavItem(icon: Icons.settings_rounded,         label: 'Settings', index: 3, currentIndex: _currentIndex, onTap: _onTap),
               ],
             ),
           ),
@@ -56,10 +51,7 @@ class _MainNavigationState extends State<MainNavigation> {
     );
   }
 
-  void _onTap(int index) => setState(() {
-    if (index == 1) _aiKey++; // fuerza recarga de datos al volver a Mi Aura
-    _currentIndex = index;
-  });
+  void _onTap(int index) => setState(() => _currentIndex = index);
 }
 
 class _NavItem extends StatelessWidget {
