@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../../core/api/api_client.dart';
+import '../../../core/config/env.dart';
 import '../models/user_profile.dart';
 import '../models/ble_token.dart';
 
@@ -99,6 +100,28 @@ class ProfileService {
     if (response.statusCode != 200 && response.statusCode != 204) {
       final error = jsonDecode(response.body)['detail'] ?? "Error eliminando cuenta";
       throw Exception(error);
+    }
+  }
+
+  Future<String> generateAuraSnapshot(String token, String userId) async {
+    final response = await http.post(
+      Uri.parse("${Env.baseUrl}/api/v1/aura/snapshot"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token"
+      },
+      body: jsonEncode({
+        "usuario_id": userId
+      }),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final map = jsonDecode(utf8.decode(response.bodyBytes));
+      if (map["recomendaciones"] != null && map["recomendaciones"].isNotEmpty) {
+        return map["recomendaciones"][0];
+      }
+      return map["resumen_ia"] ?? "Análisis generado";
+    } else {
+      throw Exception('Failed to generate snapshot');
     }
   }
 }

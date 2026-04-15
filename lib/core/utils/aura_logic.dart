@@ -74,4 +74,16 @@ class AuraLogic {
     
     return HSLColor.fromAHSL(1.0, hue, sl[0] / 100.0, sl[1] / 100.0).toColor();
   }
+
+  static List<Map<String, dynamic>> getNivelesConColor(List<String> intereses) {
+    return niveles.map((n) {
+      final color = calcularColorAura(intereses, n.nivel);
+      return {
+        'nivel': n.nivel,
+        'min': n.min,
+        'nombre': n.nombre,
+        'color': color,
+      };
+    }).toList();
+  }
 }

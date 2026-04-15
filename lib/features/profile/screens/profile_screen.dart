@@ -32,6 +32,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool deleteLoading = false;
   String? deleteError;
 
+  bool snapLoading = false;
+  String? snapResult;
+  String? snapError;
+
+  Future<void> generarSnapshot() async {
+    setState(() { snapLoading = true; snapError = null; });
+    try {
+      final token = await TokenService().getToken();
+      if (token != null && profile != null) {
+        final res = await ProfileService().generateAuraSnapshot(token, profile!.id);
+        if (mounted) setState(() => snapResult = res);
+      }
+    } catch (e) {
+      if (mounted) setState(() => snapError = e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => snapLoading = false);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -286,6 +305,148 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           )).toList(),
                         );
                       }),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Progresion de Niveles ───────────────────────
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Progresión de niveles', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.ink)),
+                      const SizedBox(height: 14),
+                      Builder(builder: (context) {
+                        final niveles = AuraLogic.getNivelesConColor(profile!.intereses ?? []);
+                        return Column(
+                          children: niveles.map((n) {
+                            final bool activo = profile!.auraNivel == n['nivel'];
+                            final bool alcanzado = profile!.auraPuntos >= (n['min'] as int);
+                            final Color nColor = n['color'] as Color;
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: activo ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: activo ? AppColors.primary.withValues(alpha: 0.25) : Colors.transparent),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 12, height: 12,
+                                        decoration: BoxDecoration(shape: BoxShape.circle, color: nColor, boxShadow: activo ? [BoxShadow(color: nColor.withValues(alpha: 0.6), blurRadius: 8)] : []),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(n['nombre'], style: TextStyle(fontSize: 13, fontWeight: activo ? FontWeight.w700 : FontWeight.w500, color: activo ? AppColors.ink : (alcanzado ? AppColors.ink : AppColors.faint))),
+                                    ],
+                                  ),
+                                  Row(
+                                    children: [
+                                      Text('${n['min']} pts', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                                      const SizedBox(width: 12),
+                                      if (activo)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(4)),
+                                          child: const Text('Actual', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                        )
+                                      else if (alcanzado)
+                                        const Icon(Icons.check_circle_rounded, color: Colors.green, size: 16)
+                                      else
+                                        Container(width: 16, height: 16, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.border, width: 2))),
+                                    ],
+                                  )
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Historial de interacciones ────────────────
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Historial de interacciones', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.ink)),
+                      SizedBox(height: 8),
+                      Text('Asiste a un evento y activa BLE para ver tu historial aquí', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Smart Concierge ───────────────────────────
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.auto_awesome_rounded, color: AppColors.secondary, size: 18),
+                          const SizedBox(width: 6),
+                          const Text('Smart Concierge', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.ink)),
+                        ],
+                      ),
+                      if (snapResult != null) ...[
+                        const SizedBox(height: 14),
+                        Text(snapResult!, style: const TextStyle(color: AppColors.muted, fontSize: 13, height: 1.5)),
+                      ] else ...[
+                        const SizedBox(height: 14),
+                        const Text('Aura IA analiza tus intereses para generarte recomendaciones óptimas de la convención.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                      ],
+                      if (snapError != null) ...[
+                        const SizedBox(height: 8),
+                        Text(snapError!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+                      ],
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        height: 38,
+                        child: OutlinedButton.icon(
+                          onPressed: snapLoading ? null : generarSnapshot,
+                          icon: snapLoading 
+                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.secondary))
+                            : const Icon(Icons.auto_awesome_outlined, size: 16, color: AppColors.secondary),
+                          label: Text(snapLoading ? 'Generando...' : 'Generar Snapshot', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.secondary)),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: AppColors.secondary.withValues(alpha: 0.5)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
