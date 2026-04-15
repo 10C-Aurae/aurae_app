@@ -9,6 +9,7 @@ import '../models/ble_token.dart';
 import '../models/order.dart';
 import '../../orders/data/order_service.dart';
 import 'edit_profile_screen.dart';
+import '../../admin_events/screens/admin_event_list_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -550,6 +551,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           ),
                         )).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Zona de Organizador ───────────────────────
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.admin_panel_settings_rounded, color: AppColors.primary, size: 20),
+                          SizedBox(width: 8),
+                          Text('Zona de Organizador', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.ink)),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      const Text('Gestiona tus eventos, crea nuevas experiencias y revisa tus estadísticas.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: ElevatedButton.icon(
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminEventListScreen())),
+                          icon: const Icon(Icons.event_note_rounded, size: 18),
+                          label: const Text('Administrar mis eventos', style: TextStyle(fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary.withOpacity(0.1),
+                            foregroundColor: AppColors.primary,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
                       ),
                     ],
                   ),

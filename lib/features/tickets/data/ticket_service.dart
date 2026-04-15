@@ -95,4 +95,19 @@ class TicketService {
       headers: {"Authorization": "Bearer $token"},
     );
   }
+
+  /// 🔥 TICKETS POR EVENTO (ADMIN)
+  static Future<List<Ticket>> getTicketsByEvent(String eventId) async {
+    final token = await TokenService().getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/tickets/evento/$eventId"),
+      headers: {"Authorization": "Bearer $token"},
+    );
+
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+      return data.map((e) => Ticket.fromJson(e)).toList();
+    }
+    throw Exception("Error cargando tickets del evento");
+  }
 }
