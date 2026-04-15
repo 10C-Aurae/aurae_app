@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_colors.dart';
 import '../../../core/auth/token_service.dart';
-import '../../../core/utils/color_utils.dart';
 import '../../../core/utils/aura_logic.dart';
 import '../data/profile_service.dart';
 import '../models/user_profile.dart';
@@ -291,7 +290,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const Text('Intereses', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.ink)),
                       const SizedBox(height: 14),
                       Builder(builder: (context) {
-                        final intereses = profile!.intereses ?? [];
+                        final intereses = profile!.intereses;
                         if (intereses.isEmpty) {
                           return const Text('Sin intereses seleccionados', style: TextStyle(color: AppColors.muted, fontSize: 13));
                         }
@@ -304,7 +303,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(color: auraColor.withOpacity(0.25)),
                             ),
-                            child: Text(e, style: TextStyle(fontSize: 13, color: auraColor, fontWeight: FontWeight.w500)),
+                            child: Text(AuraLogic.labelDeInteres(e), style: TextStyle(fontSize: 13, color: auraColor, fontWeight: FontWeight.w500)),
                           )).toList(),
                         );
                       }),
@@ -329,7 +328,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const Text('Progresión de niveles', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.ink)),
                       const SizedBox(height: 14),
                       Builder(builder: (context) {
-                        final niveles = AuraLogic.getNivelesConColor(profile!.intereses ?? []);
+                        final niveles = AuraLogic.getNivelesConColor(profile!.intereses);
                         return Column(
                           children: niveles.map((n) {
                             final bool activo = profile!.auraNivel == n['nivel'];

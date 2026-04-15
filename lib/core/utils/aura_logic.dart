@@ -137,6 +137,40 @@ class AuraLogic {
     {'nombre': 'Explorador',     'afinidades': <String>[],                                                                'emoji': '🧭', 'desc': 'Curioso de todo, límite de nada'},
   ];
 
+  // ── Etiquetas de intereses (espejo de _interestItems en register/edit screens) ─
+
+  static const Map<String, String> _interesLabels = {
+    'tecnologia':      'Tecnología',
+    'musica':          'Música',
+    'arte':            'Arte',
+    'gaming':          'Gaming',
+    'negocios':        'Negocios',
+    'gastronomia':     'Gastronomía',
+    'deportes':        'Deportes',
+    'networking':      'Networking',
+    'innovacion':      'Innovación',
+    'sustentabilidad': 'Sustentabilidad',
+    'fotografia':      'Fotografía',
+    'moda':            'Moda',
+    'cine':            'Cine',
+    'viajes':          'Viajes',
+    'bienestar':       'Bienestar',
+    'ciencia':         'Ciencia',
+    'literatura':      'Literatura',
+    'danza':           'Danza',
+    'podcasts':        'Podcasts',
+    'educacion':       'Educación',
+    'finanzas':        'Finanzas',
+    'teatro':          'Teatro',
+  };
+
+  /// Devuelve la etiqueta legible del interés. Si no está en el mapa lo capitaliza.
+  static String labelDeInteres(String id) {
+    final key = id.toLowerCase().trim();
+    if (_interesLabels.containsKey(key)) return _interesLabels[key]!;
+    return key.isNotEmpty ? '${key[0].toUpperCase()}${key.substring(1)}' : id;
+  }
+
   /// Infiere el arquetipo con más afinidades con los intereses del usuario.
   /// Devuelve 'Explorador' si no hay match.
   static Map<String, dynamic> inferirArquetipo(List<String> intereses) {

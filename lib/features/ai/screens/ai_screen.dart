@@ -406,7 +406,7 @@ class _AIScreenState extends State<AIScreen> {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: Text(i, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                      child: Text(AuraLogic.labelDeInteres(i), style: const TextStyle(fontSize: 12, color: AppColors.muted)),
                     )).toList(),
                   ),
                 ],

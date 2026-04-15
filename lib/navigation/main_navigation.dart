@@ -16,20 +16,20 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
-
-  final _screens = const [
-    DiscoverScreen(),
-    AIScreen(),
-    TicketsScreen(),
-    ProfileScreen(),
-    SettingsScreen(),
-  ];
+  // Incrementar esta key reconstruye AIScreen y dispara su _load()
+  int _aiKey = 0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: _screens[_currentIndex],
+      body: [
+        const DiscoverScreen(),
+        AIScreen(key: ValueKey(_aiKey)),
+        const TicketsScreen(),
+        const ProfileScreen(),
+        const SettingsScreen(),
+      ][_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: AppColors.nav,
@@ -56,7 +56,10 @@ class _MainNavigationState extends State<MainNavigation> {
     );
   }
 
-  void _onTap(int index) => setState(() => _currentIndex = index);
+  void _onTap(int index) => setState(() {
+    if (index == 1) _aiKey++; // fuerza recarga de datos al volver a Mi Aura
+    _currentIndex = index;
+  });
 }
 
 class _NavItem extends StatelessWidget {
