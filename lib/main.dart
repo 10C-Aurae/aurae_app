@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:flutter/foundation.dart';
 import 'theme/app_theme.dart';
 import 'router/app_router.dart';
 import 'core/config/env.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  Stripe.publishableKey = Env.stripePublishableKey;
+  if (!kIsWeb) {
+    Stripe.publishableKey = Env.stripePublishableKey;
+  }
   runApp(const ProviderScope(child: AuraeApp()));
 }
 

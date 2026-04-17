@@ -9,9 +9,11 @@ import '../data/stands_service.dart';
 import '../widgets/stand_card.dart';
 import '../../concierge/screens/concierge_screen.dart';
 import '../../aura_flow/screens/aura_flow_screen.dart';
-import '../../scan_qr/screens/scan_qr_screen.dart';
+import '../../scan_qr/screens/scan_qr_v2_screen.dart';
+import 'bluetooth_test_screen.dart';
 import '../../chat/screens/event_chat_screen.dart';
 import '../widgets/chatbot_evento.dart';
+import '../../../core/bluetooth/bluetooth_service.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -38,10 +40,21 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     _checkTicketOwnership();
   }
 
+  @override
+  void dispose() {
+    BluetoothService().stopScanning();
+    super.dispose();
+  }
+
   Future<void> _checkTicketOwnership() async {
     try {
       final token = await TokenService().getToken();
-      if (token == null) return;
+      
+      if (token == null) {
+        if (mounted) setState(() => checkingTicket = false);
+        return;
+      }
+
       final user = await ProfileService().getMyProfile(token);
       final tickets = await TicketService.getMyTickets(user.id);
       
@@ -52,8 +65,16 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           hasTicket = ownsTicket;
           checkingTicket = false;
         });
+        
+        if (hasTicket) {
+          final ble = BluetoothService();
+          ble.setEventoId(widget.event.id);
+          // Safety check for web or unsupported devices
+          ble.startScanning().catchError((e) => print("Bluetooth Scan Error: $e"));
+        }
       }
     } catch (e) {
+      print("Error checking ticket: $e");
       if (mounted) setState(() => checkingTicket = false);
     }
   }
@@ -255,7 +276,13 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     _buildToolTile(
                       Icons.qr_code_scanner_rounded, 'Escanear QR', 'Check-in manual de stands',
                       () => Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => ScanQRScreen(eventoId: event.id),
+                        builder: (_) => ScanQRV2Screen(eventoId: event.id),
+                      )),
+                    ),
+                    _buildToolTile(
+                      Icons.bluetooth_searching_rounded, 'Prueba de Handshake', 'Visualiza la detección de beacons',
+                      () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => BluetoothTestScreen(eventName: event.nombre),
                       )),
                     ),
                     _buildToolTile(

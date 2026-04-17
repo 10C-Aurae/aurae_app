@@ -1,22 +1,20 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:http/http.dart' as http;
 import '../../../theme/app_colors.dart';
-import '../../../core/auth/token_service.dart';
-import '../../../core/config/env.dart';
+import '../../../core/interaction/interaccion_service.dart';
 
-class ScanQRScreen extends StatefulWidget {
+class ScanQRV2Screen extends StatefulWidget {
   /// Optional: pre-filter which stand the QR belongs to (validation hint)
   final String? eventoId;
 
-  const ScanQRScreen({super.key, this.eventoId});
+  const ScanQRV2Screen({super.key, this.eventoId});
 
   @override
-  State<ScanQRScreen> createState() => _ScanQRScreenState();
+  State<ScanQRV2Screen> createState() => _ScanQRV2ScreenState();
 }
 
-class _ScanQRScreenState extends State<ScanQRScreen> {
+class _ScanQRV2ScreenState extends State<ScanQRV2Screen> {
   final MobileScannerController _scanner = MobileScannerController();
 
   bool _scanning = true;
@@ -38,13 +36,10 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     setState(() { _scanning = false; _processing = true; });
 
     try {
-      final token = await TokenService().getToken();
-      if (token == null) throw Exception('Sin sesión');
-
       // QR codes in Aurae encode a standId directly or a JSON payload
       String? standId;
       try {
-        final decoded = jsonDecode(code) as Map<String, dynamic>;
+        final decoded = json.decode(code) as Map<String, dynamic>;
         standId = decoded['stand_id'] as String?;
       } catch (_) {
         // Plain stand ID
@@ -57,41 +52,12 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
         throw Exception('No se proporcionó el ID del evento');
       }
 
-      final now = DateTime.now().toUtc();
-      final fin = now.add(const Duration(seconds: 31));
+      await InteraccionService().registrarHandshake(
+        standId: standId,
+        eventoId: widget.eventoId!,
+      );
 
-      // Decode user ID from the JWT `sub` claim without a network call.
-      final parts = token.split('.');
-      if (parts.length != 3) throw Exception('Token inválido.');
-      final payload = parts[1];
-      final normalized = base64Url.normalize(payload);
-      final decoded = utf8.decode(base64Url.decode(normalized));
-      final claims = jsonDecode(decoded) as Map<String, dynamic>;
-      final usuarioId = claims['sub'] as String?;
-      if (usuarioId == null || usuarioId.isEmpty) throw Exception('No se pudo obtener el usuario.');
-
-      final response = await http.post(
-        Uri.parse('${Env.baseUrl}/api/v1/interacciones/handshake'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'usuario_id':       usuarioId,
-          'evento_id':        widget.eventoId,
-          'stand_id':         standId,
-          'tipo':             'stand_visit',
-          'timestamp_inicio': now.toIso8601String(),
-          'timestamp_fin':    fin.toIso8601String(),
-        }),
-      ).timeout(const Duration(seconds: 15));
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        setState(() { _resultMsg = '¡Check-in exitoso!'; _resultOk = true; _processing = false; });
-      } else {
-        final body = jsonDecode(response.body);
-        throw Exception(body['detail'] ?? 'Error en el servidor');
-      }
+      setState(() { _resultMsg = '¡Check-in exitoso!'; _resultOk = true; _processing = false; });
     } catch (e) {
       setState(() { _resultMsg = e.toString(); _resultOk = false; _processing = false; });
     }

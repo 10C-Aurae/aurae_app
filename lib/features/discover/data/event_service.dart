@@ -9,7 +9,7 @@ class EventService {
 
   Future<List<Event>> getEvents() async {
     final response = await http.get(
-      Uri.parse(baseUrl),
+      Uri.parse("$baseUrl/"),
       headers: {"Content-Type": "application/json"},
     );
 
@@ -45,7 +45,7 @@ class EventService {
   }
 
   Future<Event> updateEvent(String token, String id, Map<String, dynamic> data) async {
-    final response = await ApiClient.patch("/eventos/$id", token, data);
+    final response = await ApiClient.patch("/eventos/$id/", token, data);
     if (response.statusCode == 200) {
       return Event.fromJson(jsonDecode(response.body));
     } else {
@@ -55,7 +55,7 @@ class EventService {
   }
 
   Future<void> deleteEvent(String token, String id) async {
-    final response = await ApiClient.delete("/eventos/$id", token);
+    final response = await ApiClient.delete("/eventos/$id/", token);
     if (response.statusCode != 200 && response.statusCode != 204) {
       final error = jsonDecode(response.body)['detail'] ?? "Error deleting event";
       throw Exception(error);
