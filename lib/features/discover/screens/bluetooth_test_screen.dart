@@ -30,13 +30,16 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
     )..repeat();
 
     _subscription = _ble.statusStream.listen((event) {
-      if (mounted) {
-        setState(() {
-          _lastStatus = event;
-          if (event.containsKey('standId')) {
-            _nearbyStands[event['standId']] = event;
-          }
-        });
+      if (!mounted) return;
+      setState(() {
+        _lastStatus = event;
+        if (event.containsKey('standId')) {
+          _nearbyStands[event['standId']] = event;
+        }
+      });
+      if (event['status'] == BluetoothStatus.awaitingConfirmation) {
+        final standId = event['standId'] as String?;
+        if (standId != null) _maybeShowConfirmation(standId);
       }
     });
 
@@ -52,6 +55,60 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
     _subscription?.cancel();
     _radarController.dispose();
     super.dispose();
+  }
+
+  Future<void> _maybeShowConfirmation(String standId) async {
+    if (!_ble.tryClaimConfirmation(standId)) return;
+    if (!mounted) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('¿Visitaste este stand?',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.ink)),
+        content: Text(
+          'Detectamos el stand $standId cerca de ti durante los últimos minutos. ¿Lo registramos?',
+          style: const TextStyle(color: AppColors.muted, fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No, aún no', style: TextStyle(color: AppColors.muted)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.check_rounded, size: 18),
+            label: const Text('Sí, registrar'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    if (confirm == true) {
+      try {
+        await _ble.confirmarHandshake(standId);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(backgroundColor: Colors.green.shade700, content: const Text('Visita registrada')),
+        );
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo registrar la visita.')),
+        );
+      }
+    } else {
+      _ble.descartarHandshake(standId);
+    }
   }
 
   @override

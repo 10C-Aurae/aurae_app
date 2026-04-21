@@ -4,7 +4,29 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../interaction/interaccion_service.dart';
 
-enum BluetoothStatus { idle, scanning, detected, handshakeSuccess, exit, permissionDenied }
+enum BluetoothStatus {
+  idle,
+  scanning,
+  detected,
+  awaitingConfirmation, // permanencia cumplida, esperando confirmación del usuario
+  handshakeSuccess,
+  handshakeCancelled,
+  exit,
+  permissionDenied,
+}
+
+class PendingHandshake {
+  final String standId;
+  final String eventoId;
+  final DateTime timestampInicio;
+  final double? rssiPromedio;
+  PendingHandshake({
+    required this.standId,
+    required this.eventoId,
+    required this.timestampInicio,
+    this.rssiPromedio,
+  });
+}
 
 class BluetoothService {
   static final BluetoothService _instance = BluetoothService._internal();
@@ -23,6 +45,14 @@ class BluetoothService {
   final Set<String> _registeredHandshakes = {};
   final Map<String, DateTime> _lastSeen = {};
   final Map<String, List<int>> _rssiSamples = {};
+
+  // Handshakes que cumplieron permanencia y esperan confirmación del usuario.
+  final Map<String, PendingHandshake> _pending = {};
+  // Marca los standIds cuyo modal ya se mostró en esta sesión para evitar que
+  // dos pantallas suscritas al stream abran dos dialogs al mismo tiempo.
+  final Set<String> _modalShownFor = {};
+
+  Map<String, PendingHandshake> get pendingHandshakes => Map.unmodifiable(_pending);
 
   static const int rssiThreshold = -70;
   static const Duration permanenceRequired = Duration(minutes: 2);
@@ -73,6 +103,58 @@ class BluetoothService {
     _detectedStands.clear();
     _lastSeen.clear();
     _rssiSamples.clear();
+    _pending.clear();
+    _modalShownFor.clear();
+  }
+
+  /// Llama esta función desde la UI antes de mostrar el modal. Devuelve true la
+  /// primera vez para un standId dado; las siguientes llamadas devuelven false,
+  /// evitando que dos pantallas abran el mismo dialog simultáneamente.
+  bool tryClaimConfirmation(String standId) {
+    if (!_pending.containsKey(standId)) return false;
+    if (_modalShownFor.contains(standId)) return false;
+    _modalShownFor.add(standId);
+    return true;
+  }
+
+  /// El usuario aceptó: se hace el POST real y se marca como registrado.
+  Future<void> confirmarHandshake(String standId) async {
+    final pending = _pending.remove(standId);
+    if (pending == null) return;
+    _registeredHandshakes.add(standId);
+
+    try {
+      await _interaccionService.registrarHandshake(
+        standId: pending.standId,
+        eventoId: pending.eventoId,
+        tipo: 'ble_handshake',
+        timestampInicio: pending.timestampInicio,
+        rssiPromedio: pending.rssiPromedio,
+      );
+      _statusController.add({
+        'status': BluetoothStatus.handshakeSuccess,
+        'standId': standId,
+        'message': '¡Visita registrada!',
+      });
+    } catch (e) {
+      // Revertir para permitir reintentar
+      _registeredHandshakes.remove(standId);
+      _pending[standId] = pending;
+      _modalShownFor.remove(standId);
+      _statusController.add({'status': BluetoothStatus.detected, 'error': e.toString()});
+      rethrow;
+    }
+  }
+
+  /// El usuario rechazó el registro: se descarta sin POST y no se vuelve a
+  /// preguntar por ese stand en esta sesión.
+  void descartarHandshake(String standId) {
+    _pending.remove(standId);
+    _registeredHandshakes.add(standId);
+    _statusController.add({
+      'status': BluetoothStatus.handshakeCancelled,
+      'standId': standId,
+    });
   }
 
   Future<bool> _requestPermissions() async {
@@ -179,33 +261,31 @@ class BluetoothService {
     return null;
   }
 
-  Future<void> _handleHandshake(String standId) async {
+  // Cumplida la permanencia: marca el stand como pendiente de confirmación y
+  // notifica a la UI. El POST real se hace en `confirmarHandshake` cuando el
+  // usuario acepta el modal.
+  void _handleHandshake(String standId) {
     if (_eventoId == null) return;
-    _registeredHandshakes.add(standId); // mark before API call to prevent duplicates
+    if (_pending.containsKey(standId) || _registeredHandshakes.contains(standId)) return;
 
     final timestampInicio = _detectedStands[standId]!;
-    final samples = _rssiSamples[standId] ?? [];
+    final samples = _rssiSamples[standId] ?? const <int>[];
     final rssiPromedio = samples.isEmpty
         ? null
         : samples.reduce((a, b) => a + b) / samples.length;
 
-    try {
-      await _interaccionService.registrarHandshake(
-        standId: standId,
-        eventoId: _eventoId!,
-        tipo: 'ble_handshake',
-        timestampInicio: timestampInicio,
-        rssiPromedio: rssiPromedio,
-      );
-      _statusController.add({
-        'status': BluetoothStatus.handshakeSuccess,
-        'standId': standId,
-        'message': '¡Handshake digital exitoso!',
-      });
-    } catch (e) {
-      _registeredHandshakes.remove(standId); // allow retry on error
-      _statusController.add({'status': BluetoothStatus.detected, 'error': e.toString()});
-    }
+    _pending[standId] = PendingHandshake(
+      standId: standId,
+      eventoId: _eventoId!,
+      timestampInicio: timestampInicio,
+      rssiPromedio: rssiPromedio,
+    );
+
+    _statusController.add({
+      'status': BluetoothStatus.awaitingConfirmation,
+      'standId': standId,
+      'message': 'Confirma tu visita al stand',
+    });
   }
 
   Future<void> _handleExit(String standId) async {

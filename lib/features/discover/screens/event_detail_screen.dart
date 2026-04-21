@@ -46,7 +46,116 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       if (!mounted) return;
       final status = event['status'];
       if (status is BluetoothStatus) setState(() => _bleStatus = status);
+      if (status == BluetoothStatus.awaitingConfirmation) {
+        final standId = event['standId'] as String?;
+        if (standId != null) _maybeShowConfirmation(standId);
+      }
     });
+  }
+
+  Future<void> _maybeShowConfirmation(String standId) async {
+    if (!BluetoothService().tryClaimConfirmation(standId)) return;
+    if (!mounted) return;
+
+    final standNombre = _resolveStandNombre(standId);
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 22, 24, 10),
+        contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 4),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.place_rounded, size: 20, color: AppColors.primary),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text('¿Visitaste este stand?',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.ink)),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(standNombre,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.primary)),
+            const SizedBox(height: 8),
+            const Text(
+              'Detectamos que estuviste cerca durante los últimos minutos. Confirma para sumarlo a tu aura.',
+              style: TextStyle(fontSize: 13, color: AppColors.muted, height: 1.4),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No, aún no', style: TextStyle(color: AppColors.muted)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.check_rounded, size: 18),
+            label: const Text('Sí, registrar'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    if (confirm == true) {
+      try {
+        await BluetoothService().confirmarHandshake(standId);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.green.shade700,
+            content: Text('Visita a $standNombre registrada'),
+          ),
+        );
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo registrar la visita. Intenta de nuevo.')),
+        );
+      }
+    } else {
+      BluetoothService().descartarHandshake(standId);
+    }
+  }
+
+  String _resolveStandNombre(String standId) {
+    for (final s in stands) {
+      final id = s is Map ? s['id']?.toString() : null;
+      if (id == standId) {
+        final nombre = s['nombre']?.toString();
+        if (nombre != null && nombre.isNotEmpty) return nombre;
+      }
+      // Fallback para modelos tipados
+      try {
+        final dynId = (s as dynamic).id?.toString();
+        if (dynId == standId) {
+          final dynNombre = (s as dynamic).nombre?.toString();
+          if (dynNombre != null && dynNombre.toString().isNotEmpty) return dynNombre.toString();
+        }
+      } catch (_) {}
+    }
+    return 'Stand desconocido';
   }
 
   @override
@@ -490,7 +599,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     } else if (!hasTicket) {
       subtitle = 'Disponible con tu ticket del evento';
     } else if (scanning) {
-      subtitle = 'Detectando stands cercanos…';
+      subtitle = 'Detectando stands cercanos · mantén la app abierta';
     } else {
       subtitle = 'Toca para ver los stands cerca de ti';
     }
