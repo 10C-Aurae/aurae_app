@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../theme/app_colors.dart';
 import '../models/event.dart';
@@ -33,18 +34,32 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   bool hasTicket = false;
   bool checkingTicket = true;
 
+  StreamSubscription? _bleSub;
+  BluetoothStatus? _bleStatus;
+
   @override
   void initState() {
     super.initState();
     _loadStands();
     _checkTicketOwnership();
+    _bleSub = BluetoothService().statusStream.listen((event) {
+      if (!mounted) return;
+      final status = event['status'];
+      if (status is BluetoothStatus) setState(() => _bleStatus = status);
+    });
   }
 
   @override
   void dispose() {
+    _bleSub?.cancel();
     BluetoothService().stopScanning();
     super.dispose();
   }
+
+  bool get _isScanning =>
+      _bleStatus == BluetoothStatus.scanning ||
+      _bleStatus == BluetoothStatus.detected ||
+      _bleStatus == BluetoothStatus.handshakeSuccess;
 
   Future<void> _checkTicketOwnership() async {
     try {
@@ -242,7 +257,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
                   const SizedBox(height: 32),
 
-                  // ── Stands + tools: solo con ticket ─────────
+                  // ── Digital Handshake card (siempre visible) ────────
+                  _buildHandshakeCard(event),
+                  const SizedBox(height: 24),
+
+                  // ── Stands + herramientas: solo con ticket ─────────
                   if (!checkingTicket && hasTicket) ...[
                     if (stands.isNotEmpty || standsLoading) ...[
                       const Text('Stands del evento', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.ink)),
@@ -277,12 +296,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       Icons.qr_code_scanner_rounded, 'Escanear QR', 'Check-in manual de stands',
                       () => Navigator.push(context, MaterialPageRoute(
                         builder: (_) => ScanQRV2Screen(eventoId: event.id),
-                      )),
-                    ),
-                    _buildToolTile(
-                      Icons.bluetooth_searching_rounded, 'Prueba de Handshake', 'Visualiza la detección de beacons',
-                      () => Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => BluetoothTestScreen(eventName: event.nombre, eventoId: event.id),
                       )),
                     ),
                     _buildToolTile(
@@ -459,6 +472,173 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         title: Text(title, style: const TextStyle(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.bold)),
         subtitle: Text(sub, style: const TextStyle(color: AppColors.muted, fontSize: 11)),
         trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.faint),
+      ),
+    );
+  }
+
+  // ── Digital Handshake card ──────────────────────────────────────────────
+  //
+  // Visible siempre para que el feature sea descubrible. El estado depende de
+  // si el usuario tiene ticket y de si el scanner BLE está corriendo.
+  Widget _buildHandshakeCard(Event event) {
+    final ready      = !checkingTicket && hasTicket;
+    final scanning   = ready && _isScanning;
+
+    final String subtitle;
+    if (checkingTicket) {
+      subtitle = 'Verificando tu acceso…';
+    } else if (!hasTicket) {
+      subtitle = 'Disponible con tu ticket del evento';
+    } else if (scanning) {
+      subtitle = 'Detectando stands cercanos…';
+    } else {
+      subtitle = 'Toca para ver los stands cerca de ti';
+    }
+
+    final Color accent = ready ? AppColors.primary : AppColors.muted;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: accent.withValues(alpha: scanning ? 0.45 : 0.2), width: scanning ? 1.5 : 1),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: ready
+            ? () => Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => BluetoothTestScreen(eventName: event.nombre, eventoId: event.id),
+                ))
+            : () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Necesitas un ticket para activar el Digital Handshake.')),
+                ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              _HandshakePulse(active: scanning, color: accent),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text('Digital Handshake',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: ready ? AppColors.ink : AppColors.muted,
+                            )),
+                        if (scanning) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text('ACTIVO',
+                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: accent, letterSpacing: 1)),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                  ],
+                ),
+              ),
+              Icon(
+                ready ? Icons.chevron_right_rounded : Icons.lock_outline_rounded,
+                size: 20,
+                color: AppColors.faint,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Ícono de Bluetooth con ondas animadas cuando el scanner está activo.
+class _HandshakePulse extends StatefulWidget {
+  final bool active;
+  final Color color;
+  const _HandshakePulse({required this.active, required this.color});
+
+  @override
+  State<_HandshakePulse> createState() => _HandshakePulseState();
+}
+
+class _HandshakePulseState extends State<_HandshakePulse> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.active) _ctrl.repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _HandshakePulse old) {
+    super.didUpdateWidget(old);
+    if (widget.active && !_ctrl.isAnimating) {
+      _ctrl.repeat();
+    } else if (!widget.active && _ctrl.isAnimating) {
+      _ctrl.stop();
+      _ctrl.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 44, height: 44,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (widget.active) ...[
+            AnimatedBuilder(animation: _ctrl, builder: (_, _) => _ring(_ctrl.value)),
+            AnimatedBuilder(animation: _ctrl, builder: (_, _) => _ring((_ctrl.value + 0.5) % 1.0)),
+          ],
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: widget.color.withValues(alpha: widget.active ? 0.2 : 0.08),
+            ),
+            child: Icon(
+              widget.active ? Icons.bluetooth_searching_rounded : Icons.bluetooth_rounded,
+              size: 18,
+              color: widget.color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ring(double t) {
+    final size = 36 + (18 * t);
+    return Opacity(
+      opacity: (1 - t).clamp(0.0, 1.0),
+      child: Container(
+        width: size, height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: widget.color.withValues(alpha: 0.22 * (1 - t)),
+        ),
       ),
     );
   }

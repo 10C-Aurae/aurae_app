@@ -64,7 +64,7 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Prueba de Handshake', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: const Text('Digital Handshake', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
