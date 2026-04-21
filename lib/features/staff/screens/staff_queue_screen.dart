@@ -7,6 +7,7 @@ import '../../../core/auth/token_service.dart';
 import '../../../core/config/env.dart';
 import 'staff_scan_qr_screen.dart';
 import 'staff_chat_screen.dart';
+import 'staff_beacon_screen.dart';
 
 class StaffQueueScreen extends StatefulWidget {
   final Map<String, dynamic> stand;
@@ -136,6 +137,17 @@ class _StaffQueueScreenState extends State<StaffQueueScreen> {
           child: Container(height: 0.5, color: AppColors.border),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.sensors_rounded, color: AppColors.primary),
+            tooltip: 'Beacon del stand',
+            onPressed: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => StaffBeaconScreen(
+                standId: _standId,
+                standNombre: widget.stand['nombre'] ?? 'Stand',
+                token: widget.token,
+              ),
+            )),
+          ),
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.primary),
             tooltip: 'Pedidos y mensajes',
