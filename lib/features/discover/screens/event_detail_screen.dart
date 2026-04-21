@@ -282,7 +282,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     _buildToolTile(
                       Icons.bluetooth_searching_rounded, 'Prueba de Handshake', 'Visualiza la detección de beacons',
                       () => Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => BluetoothTestScreen(eventName: event.nombre),
+                        builder: (_) => BluetoothTestScreen(eventName: event.nombre, eventoId: event.id),
                       )),
                     ),
                     _buildToolTile(

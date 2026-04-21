@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 import '../../../theme/app_colors.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../core/bluetooth/bluetooth_service.dart';
 
 class BluetoothTestScreen extends StatefulWidget {
   final String eventName;
-  const BluetoothTestScreen({super.key, required this.eventName});
+  final String eventoId;
+  const BluetoothTestScreen({super.key, required this.eventName, required this.eventoId});
 
   @override
   State<BluetoothTestScreen> createState() => _BluetoothTestScreenState();
@@ -15,7 +16,8 @@ class BluetoothTestScreen extends StatefulWidget {
 class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTickerProviderStateMixin {
   final BluetoothService _ble = BluetoothService();
   late AnimationController _radarController;
-  
+  StreamSubscription? _subscription;
+
   Map<String, dynamic>? _lastStatus;
   final Map<String, dynamic> _nearbyStands = {};
 
@@ -27,7 +29,7 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
       duration: const Duration(seconds: 4),
     )..repeat();
 
-    _ble.statusStream.listen((event) {
+    _subscription = _ble.statusStream.listen((event) {
       if (mounted) {
         setState(() {
           _lastStatus = event;
@@ -37,16 +39,28 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
         });
       }
     });
+
+    // Start scanning if not already running (e.g. screen opened without going through EventDetailScreen)
+    if (!_ble.isScanning) {
+      _ble.setEventoId(widget.eventoId);
+      _ble.startScanning();
+    }
   }
 
   @override
   void dispose() {
+    _subscription?.cancel();
     _radarController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final status = _lastStatus?['status'];
+    final statusMsg = status == BluetoothStatus.permissionDenied
+        ? 'Permisos de Bluetooth denegados. Actívalos en Ajustes.'
+        : (_lastStatus?['message'] ?? 'Iniciando escaneo...');
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -57,7 +71,7 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
       body: Column(
         children: [
           const SizedBox(height: 40),
-          
+
           // Radar Visualization
           Center(
             child: Stack(
@@ -68,13 +82,17 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
                   turns: _radarController,
                   child: _buildRadarSweep(),
                 ),
-                const Icon(Icons.bluetooth_searching_rounded, size: 48, color: AppColors.primary),
+                Icon(
+                  Icons.bluetooth_searching_rounded,
+                  size: 48,
+                  color: status == BluetoothStatus.permissionDenied ? AppColors.muted : AppColors.primary,
+                ),
               ],
             ),
           ),
-          
+
           const SizedBox(height: 60),
-          
+
           // Status Box
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -85,17 +103,17 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: AppColors.border),
                 boxShadow: [
-                  BoxShadow(color: AppColors.primary.withOpacity(0.1), blurRadius: 20, spreadRadius: 0),
+                  BoxShadow(color: AppColors.primary.withValues(alpha: 0.1), blurRadius: 20, spreadRadius: 0),
                 ],
               ),
               child: Column(
                 children: [
                   Text(
-                    _lastStatus?['message'] ?? 'Iniciando escaneo...',
+                    statusMsg,
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.ink),
                   ),
-                  if (_lastStatus?['status'] == BluetoothStatus.handshakeSuccess) ...[
+                  if (status == BluetoothStatus.handshakeSuccess) ...[
                     const SizedBox(height: 12),
                     const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -106,18 +124,25 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
                       ],
                     ),
                   ],
+                  if (status == BluetoothStatus.permissionDenied) ...[
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () => openAppSettings(),
+                      child: const Text('Abrir Ajustes', style: TextStyle(color: AppColors.primary)),
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           // Detected Stands List
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.nav.withOpacity(0.5),
+                color: AppColors.nav.withValues(alpha: 0.5),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
               ),
               child: Column(
@@ -128,16 +153,15 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
                     child: Text('STANDS CERCANOS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.muted, letterSpacing: 1.2)),
                   ),
                   Expanded(
-                    child: _nearbyStands.isEmpty 
-                      ? const Center(child: Text('Buscando dispositivos...', style: TextStyle(color: AppColors.faint, fontSize: 13)))
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: _nearbyStands.length,
-                          itemBuilder: (context, index) {
-                            final stand = _nearbyStands.values.elementAt(index);
-                            return _buildStandTile(stand);
-                          },
-                        ),
+                    child: _nearbyStands.isEmpty
+                        ? const Center(child: Text('Buscando dispositivos...', style: TextStyle(color: AppColors.faint, fontSize: 13)))
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: _nearbyStands.length,
+                            itemBuilder: (context, index) {
+                              return _buildStandTile(_nearbyStands.values.elementAt(index));
+                            },
+                          ),
                   ),
                 ],
               ),
@@ -158,7 +182,7 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
           height: radius * 2,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.primary.withOpacity(0.15 - (index * 0.05))),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.15 - (index * 0.05))),
           ),
         );
       }),
@@ -173,8 +197,8 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
         shape: BoxShape.circle,
         gradient: SweepGradient(
           colors: [
-            AppColors.primary.withOpacity(0.0),
-            AppColors.primary.withOpacity(0.5),
+            AppColors.primary.withValues(alpha: 0.0),
+            AppColors.primary.withValues(alpha: 0.5),
           ],
           stops: const [0.75, 1.0],
         ),
@@ -183,9 +207,9 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
   }
 
   Widget _buildStandTile(Map<String, dynamic> data) {
-    final double? progress = data['progress'];
-    final int rssi = data['rssi'] ?? -100;
-    
+    final double? progress = (data['progress'] as num?)?.toDouble();
+    final int rssi = (data['rssi'] as int?) ?? -100;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -199,7 +223,11 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
-            child: Icon(Icons.pin_drop_rounded, size: 20, color: progress != null && progress >= 1.0 ? Colors.green : AppColors.primary),
+            child: Icon(
+              Icons.pin_drop_rounded,
+              size: 20,
+              color: (progress != null && progress >= 1.0) ? Colors.green : AppColors.primary,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(

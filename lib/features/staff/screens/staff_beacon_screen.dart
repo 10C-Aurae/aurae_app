@@ -2,11 +2,17 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../theme/app_colors.dart';
 import '../../../core/config/env.dart';
 
 const Duration _heartbeatInterval = Duration(seconds: 30);
+
+// Prefix del service UUID que identifica un beacon de Aurae (4 bytes). Los 12
+// bytes restantes del UUID codifican el ObjectId del stand, por lo que cada
+// stand tiene un service UUID único y determinístico.
+const String _auraeServicePrefix = 'ae7ae000';
 
 class StaffBeaconScreen extends StatefulWidget {
   final String standId;
@@ -29,7 +35,9 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
   bool _loading       = true;
   bool _actionLoading = false;
   String? _error;
+  bool _advertising = false;
 
+  final FlutterBlePeripheral _peripheral = FlutterBlePeripheral();
   Timer? _heartbeatTimer;
   Timer? _uiTickTimer;
 
@@ -39,6 +47,13 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
   };
 
   String get _beaconPath => '${Env.baseUrl}/api/v1/stands/${widget.standId}/beacon';
+
+  String get _serviceUuid {
+    final id = widget.standId.toLowerCase();
+    // ObjectId de Mongo = 24 hex chars. Se inserta tras el prefijo Aurae.
+    return '$_auraeServicePrefix-${id.substring(0, 4)}-${id.substring(4, 8)}'
+           '-${id.substring(8, 12)}-${id.substring(12, 24)}';
+  }
 
   @override
   void initState() {
@@ -50,8 +65,11 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
   void dispose() {
     _heartbeatTimer?.cancel();
     _uiTickTimer?.cancel();
+    _stopAdvertising();
     super.dispose();
   }
+
+  // ── Backend ────────────────────────────────────────────────────────────────
 
   Future<void> _loadStatus() async {
     try {
@@ -59,11 +77,15 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
       if (resp.statusCode != 200) throw Exception('Error ${resp.statusCode}');
       final data = jsonDecode(resp.body) as Map<String, dynamic>;
       if (!mounted) return;
+      final sesion = data['activo'] == true ? data['sesion'] as Map<String, dynamic>? : null;
       setState(() {
-        _sesion  = data['activo'] == true ? data['sesion'] as Map<String, dynamic>? : null;
+        _sesion  = sesion;
         _loading = false;
       });
-      if (_sesion != null) _startTimers();
+      if (sesion != null) {
+        await _startAdvertising();
+        _startTimers();
+      }
     } catch (e) {
       if (mounted) setState(() { _loading = false; _error = _formatError(e); });
     }
@@ -72,8 +94,14 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
   Future<void> _activar() async {
     setState(() { _actionLoading = true; _error = null; });
     try {
+      final ok = await _startAdvertising();
+      if (!ok) return;
+
       final resp = await http.post(Uri.parse('$_beaconPath/activar'), headers: _headers);
-      if (resp.statusCode != 201) throw Exception(_extractDetail(resp) ?? 'Error ${resp.statusCode}');
+      if (resp.statusCode != 201) {
+        await _stopAdvertising();
+        throw Exception(_extractDetail(resp) ?? 'Error ${resp.statusCode}');
+      }
       final sesion = jsonDecode(resp.body) as Map<String, dynamic>;
       if (!mounted) return;
       setState(() => _sesion = sesion);
@@ -88,6 +116,7 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
   Future<void> _desactivar() async {
     setState(() { _actionLoading = true; _error = null; });
     _stopTimers();
+    await _stopAdvertising();
     try {
       final resp = await http.post(Uri.parse('$_beaconPath/desactivar'), headers: _headers);
       if (resp.statusCode != 200) throw Exception(_extractDetail(resp) ?? 'Error ${resp.statusCode}');
@@ -105,6 +134,7 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
       final resp = await http.post(Uri.parse('$_beaconPath/heartbeat'), headers: _headers);
       if (resp.statusCode == 404) {
         _stopTimers();
+        await _stopAdvertising();
         if (mounted) setState(() {
           _sesion = null;
           _error  = 'La sesión del beacon expiró. Actívala de nuevo.';
@@ -114,10 +144,59 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
       if (resp.statusCode != 200) return;
       final sesion = jsonDecode(resp.body) as Map<String, dynamic>;
       if (mounted) setState(() => _sesion = sesion);
-    } catch (_) {
-      // Silencio: si falla red puntualmente, el siguiente tick lo reintenta.
+    } catch (_) {}
+  }
+
+  // ── BLE advertising ────────────────────────────────────────────────────────
+
+  Future<bool> _startAdvertising() async {
+    if (_advertising) return true;
+
+    // Verifica que el dispositivo pueda emitir BLE.
+    if (!await _peripheral.isSupported) {
+      if (mounted) setState(() => _error = 'Este dispositivo no soporta emisión BLE.');
+      return false;
+    }
+
+    // Permisos (Android 12+: BLUETOOTH_ADVERTISE y BLUETOOTH_CONNECT).
+    final granted = await [
+      Permission.bluetoothAdvertise,
+      Permission.bluetoothConnect,
+    ].request();
+    if (granted.values.any((s) => !s.isGranted && !s.isLimited)) {
+      if (mounted) setState(() => _error = 'Se requieren permisos de Bluetooth para emitir el beacon.');
+      return false;
+    }
+
+    try {
+      await _peripheral.start(
+        advertiseData: AdvertiseData(
+          serviceUuid: _serviceUuid,
+          includeDeviceName: false,
+        ),
+        advertiseSettings: AdvertiseSettings(
+          advertiseMode: AdvertiseMode.advertiseModeBalanced,
+          txPowerLevel:  AdvertiseTxPower.advertiseTxPowerHigh,
+          connectable: false,
+        ),
+      );
+      if (mounted) setState(() => _advertising = true);
+      return true;
+    } catch (e) {
+      if (mounted) setState(() => _error = 'No se pudo iniciar el advertising BLE: ${_formatError(e)}');
+      return false;
     }
   }
+
+  Future<void> _stopAdvertising() async {
+    if (!_advertising) return;
+    try {
+      await _peripheral.stop();
+    } catch (_) {}
+    if (mounted) setState(() => _advertising = false);
+  }
+
+  // ── Timers ─────────────────────────────────────────────────────────────────
 
   void _startTimers() {
     _heartbeatTimer?.cancel();
@@ -133,6 +212,8 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
     _uiTickTimer?.cancel();    _uiTickTimer    = null;
   }
 
+  // ── Utils ──────────────────────────────────────────────────────────────────
+
   String _formatError(Object e) => e.toString().replaceFirst('Exception: ', '');
 
   String? _extractDetail(http.Response resp) {
@@ -142,7 +223,7 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
     } catch (_) { return null; }
   }
 
-  // ── UI ──────────────────────────────────────────────────────────────────────
+  // ── UI ─────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +239,7 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Beacon', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+            const Text('Beacon BLE', style: TextStyle(fontSize: 11, color: AppColors.muted)),
             Text(widget.standNombre,
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.ink)),
           ],
@@ -195,18 +276,18 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
         children: [
           Container(
             width: 64, height: 64,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.surface,
             ),
-            child: const Icon(Icons.sensors_off_rounded, size: 30, color: AppColors.muted),
+            child: const Icon(Icons.bluetooth_disabled_rounded, size: 30, color: AppColors.muted),
           ),
           const SizedBox(height: 14),
           const Text('Beacon inactivo',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.ink)),
           const SizedBox(height: 4),
           const Text(
-            'Actívalo para que los asistentes puedan registrar su visita escaneando este dispositivo',
+            'Al activarlo, tu teléfono emitirá una señal Bluetooth que los asistentes detectarán al acercarse al stand.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: AppColors.muted),
           ),
@@ -230,8 +311,8 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
                 icon: _actionLoading
                     ? const SizedBox(width: 18, height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.sensors_rounded, color: Colors.white, size: 20),
-                label: Text(_actionLoading ? 'Activando…' : 'Activar beacon',
+                    : const Icon(Icons.bluetooth_rounded, color: Colors.white, size: 20),
+                label: Text(_actionLoading ? 'Activando…' : 'Emitir señal Bluetooth',
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
               ),
             ),
@@ -249,7 +330,7 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
     final segDesdeHb   = lastHb     != null ? ahora.difference(lastHb).inSeconds     : 0;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(18),
@@ -259,47 +340,54 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
         children: [
           const _PulseIcon(),
           const SizedBox(height: 14),
-          const Text('Beacon activo',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.ink)),
+          const Text('Emitiendo señal Bluetooth',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.ink)),
           const SizedBox(height: 4),
-          const Text(
-            'Muestra este QR a los asistentes para que escaneen su visita',
+          Text(
+            _advertising
+                ? 'Los asistentes cerca del stand detectarán esta señal en su app y podrán registrar su visita automáticamente.'
+                : 'Sesión activa en el servidor, pero la emisión BLE está detenida. Intenta reactivar.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: AppColors.muted),
+            style: const TextStyle(fontSize: 12, color: AppColors.muted),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
             ),
-            child: QrImageView(
-              data: widget.standId,
-              size: 220,
-              backgroundColor: Colors.white,
-              eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.black),
-              dataModuleStyle: const QrDataModuleStyle(
-                dataModuleShape: QrDataModuleShape.square,
-                color: Colors.black,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('IDENTIFICADOR DE EMISIÓN',
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold,
+                                     color: AppColors.faint, letterSpacing: 0.8)),
+                const SizedBox(height: 6),
+                Text(
+                  _serviceUuid,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.ink,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(
-                child: _StatTile(label: 'Tiempo activo', value: _fmtElapsed(tiempoActivo)),
-              ),
+              Expanded(child: _StatTile(label: 'Tiempo activo',     value: _fmtElapsed(tiempoActivo))),
               const SizedBox(width: 10),
-              Expanded(
-                child: _StatTile(label: 'Último heartbeat', value: 'hace ${segDesdeHb}s'),
-              ),
+              Expanded(child: _StatTile(label: 'Último heartbeat',  value: 'hace ${segDesdeHb}s')),
             ],
           ),
           const SizedBox(height: 14),
           const Text(
-            'El asistente abre Aurae → Escanear QR → apunta a esta pantalla',
+            'Mantén esta pantalla abierta mientras el beacon esté activo. La emisión se detiene al salir o al desactivar.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 11, color: AppColors.faint),
           ),
@@ -384,25 +472,29 @@ class _PulseIconState extends State<_PulseIcon> with SingleTickerProviderStateMi
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 72, height: 72,
+      width: 84, height: 84,
       child: Stack(
         alignment: Alignment.center,
         children: [
           AnimatedBuilder(
             animation: _ctrl,
-            builder: (_, __) => _pulse(_ctrl.value),
+            builder: (_, _) => _pulse(_ctrl.value),
           ),
           AnimatedBuilder(
             animation: _ctrl,
-            builder: (_, __) => _pulse((_ctrl.value + 0.33) % 1.0),
+            builder: (_, _) => _pulse((_ctrl.value + 0.33) % 1.0),
+          ),
+          AnimatedBuilder(
+            animation: _ctrl,
+            builder: (_, _) => _pulse((_ctrl.value + 0.66) % 1.0),
           ),
           Container(
-            width: 44, height: 44,
+            width: 48, height: 48,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.primary.withOpacity(0.18),
+              color: AppColors.primary.withOpacity(0.22),
             ),
-            child: const Icon(Icons.sensors_rounded, color: AppColors.primary, size: 22),
+            child: const Icon(Icons.bluetooth_rounded, color: AppColors.primary, size: 26),
           ),
         ],
       ),
@@ -410,7 +502,7 @@ class _PulseIconState extends State<_PulseIcon> with SingleTickerProviderStateMi
   }
 
   Widget _pulse(double t) {
-    final size = 44 + (28 * t);
+    final size = 48 + (36 * t);
     return Opacity(
       opacity: (1 - t).clamp(0.0, 1.0),
       child: Container(

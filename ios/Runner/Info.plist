@@ -47,6 +47,10 @@
 	<string>Aurae necesita acceso a tu galería para seleccionar imágenes.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Aurae necesita permiso para guardar imágenes en tu galería.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Aurae usa Bluetooth para emitir y detectar la señal de los stands durante el evento.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Aurae usa Bluetooth para emitir la señal del stand y permitir el Digital Handshake con los asistentes.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
