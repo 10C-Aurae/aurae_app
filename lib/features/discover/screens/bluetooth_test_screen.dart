@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart' hide BluetoothService;
 import '../../../theme/app_colors.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../core/bluetooth/bluetooth_service.dart';
@@ -17,9 +18,14 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
   final BluetoothService _ble = BluetoothService();
   late AnimationController _radarController;
   StreamSubscription? _subscription;
+  StreamSubscription? _debugSub;
 
   Map<String, dynamic>? _lastStatus;
   final Map<String, dynamic> _nearbyStands = {};
+
+  // Debug mode: lista todos los dispositivos BLE detectados (filtrados o no).
+  bool _debugMode = false;
+  final Map<String, ScanResult> _allDevices = {};
 
   @override
   void initState() {
@@ -43,6 +49,13 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
       }
     });
 
+    _debugSub = _ble.debugScanStream.listen((result) {
+      if (!mounted) return;
+      setState(() {
+        _allDevices[result.device.remoteId.toString()] = result;
+      });
+    });
+
     // Start scanning if not already running (e.g. screen opened without going through EventDetailScreen)
     if (!_ble.isScanning) {
       _ble.setEventoId(widget.eventoId);
@@ -53,6 +66,7 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
   @override
   void dispose() {
     _subscription?.cancel();
+    _debugSub?.cancel();
     _radarController.dispose();
     super.dispose();
   }
@@ -124,6 +138,14 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
         title: const Text('Digital Handshake', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: _debugMode ? 'Ocultar debug BLE' : 'Ver debug BLE',
+            icon: Icon(_debugMode ? Icons.bug_report_rounded : Icons.bug_report_outlined,
+                color: _debugMode ? AppColors.primary : AppColors.muted),
+            onPressed: () => setState(() => _debugMode = !_debugMode),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -195,7 +217,7 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
 
           const SizedBox(height: 32),
 
-          // Detected Stands List
+          // Listado
           Expanded(
             child: Container(
               decoration: BoxDecoration(
@@ -205,25 +227,98 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(28, 24, 28, 12),
-                    child: Text('STANDS CERCANOS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.muted, letterSpacing: 1.2)),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 24, 28, 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(_debugMode ? 'DEBUG · TODOS LOS BLE (${_allDevices.length})' : 'STANDS CERCANOS',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.muted, letterSpacing: 1.2)),
+                        if (_debugMode)
+                          Text('${_allDevices.values.where((d) => d.advertisementData.serviceUuids.isNotEmpty).length} c/ UUID',
+                              style: const TextStyle(fontSize: 10, color: AppColors.faint)),
+                      ],
+                    ),
                   ),
                   Expanded(
-                    child: _nearbyStands.isEmpty
-                        ? const Center(child: Text('Buscando dispositivos...', style: TextStyle(color: AppColors.faint, fontSize: 13)))
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            itemCount: _nearbyStands.length,
-                            itemBuilder: (context, index) {
-                              return _buildStandTile(_nearbyStands.values.elementAt(index));
-                            },
-                          ),
+                    child: _debugMode ? _buildDebugList() : _buildStandsList(),
                   ),
                 ],
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStandsList() {
+    if (_nearbyStands.isEmpty) {
+      return const Center(child: Text('Buscando dispositivos...', style: TextStyle(color: AppColors.faint, fontSize: 13)));
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: _nearbyStands.length,
+      itemBuilder: (context, index) => _buildStandTile(_nearbyStands.values.elementAt(index)),
+    );
+  }
+
+  Widget _buildDebugList() {
+    if (_allDevices.isEmpty) {
+      return const Center(child: Text('Aún no se detectan dispositivos BLE.', style: TextStyle(color: AppColors.faint, fontSize: 13)));
+    }
+    final items = _allDevices.values.toList()..sort((a, b) => b.rssi.compareTo(a.rssi));
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: items.length,
+      itemBuilder: (_, i) => _buildDebugTile(items[i]),
+    );
+  }
+
+  Widget _buildDebugTile(ScanResult r) {
+    final name = r.device.platformName.isEmpty ? r.advertisementData.advName : r.device.platformName;
+    final uuids = r.advertisementData.serviceUuids.map((g) => g.toString().toLowerCase()).toList();
+    final hasAurae = uuids.any((u) => u.replaceAll('-', '').startsWith('ae7ae000'));
+    final msdKeys = r.advertisementData.manufacturerData.keys.toList();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: hasAurae ? AppColors.primary : AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(name.isEmpty ? '(sin nombre)' : name,
+                    style: TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.bold,
+                      color: hasAurae ? AppColors.primary : AppColors.ink,
+                    ),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              Text('${r.rssi} dBm', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(r.device.remoteId.toString(),
+              style: const TextStyle(fontSize: 10, color: AppColors.faint, fontFamily: 'monospace')),
+          if (uuids.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text('UUIDs: ${uuids.join(", ")}',
+                style: TextStyle(fontSize: 10, color: hasAurae ? AppColors.primary : AppColors.muted, fontFamily: 'monospace'),
+                maxLines: 2, overflow: TextOverflow.ellipsis),
+          ],
+          if (msdKeys.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text('MSD: ${msdKeys.map((k) => '0x${k.toRadixString(16)}').join(", ")}',
+                style: const TextStyle(fontSize: 10, color: AppColors.muted, fontFamily: 'monospace')),
+          ],
         ],
       ),
     );

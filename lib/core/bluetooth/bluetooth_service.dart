@@ -41,6 +41,11 @@ class BluetoothService {
   final _statusController = StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get statusStream => _statusController.stream;
 
+  // Stream con TODOS los scan results crudos — útil para debug porque expone
+  // dispositivos BLE cercanos aunque no sean Aurae (diagnosticar advertising).
+  final _debugController = StreamController<ScanResult>.broadcast();
+  Stream<ScanResult> get debugScanStream => _debugController.stream;
+
   final Map<String, DateTime> _detectedStands = {};
   final Set<String> _registeredHandshakes = {};
   final Map<String, DateTime> _lastSeen = {};
@@ -185,6 +190,7 @@ class BluetoothService {
   }
 
   void _processScanResult(ScanResult result) {
+    _debugController.add(result);
     final standId = _extractStandId(result);
     if (standId == null) return;
 

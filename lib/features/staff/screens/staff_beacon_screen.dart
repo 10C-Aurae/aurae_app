@@ -171,11 +171,11 @@ class _StaffBeaconScreenState extends State<StaffBeaconScreen> {
     try {
       await _peripheral.start(
         advertiseData: AdvertiseData(
-          serviceUuid: _serviceUuid,
+          serviceUuids: [_serviceUuid],
           includeDeviceName: false,
         ),
         advertiseSettings: AdvertiseSettings(
-          advertiseMode: AdvertiseMode.advertiseModeBalanced,
+          advertiseMode: AdvertiseMode.advertiseModeLowLatency,
           txPowerLevel:  AdvertiseTxPower.advertiseTxPowerHigh,
           connectable: false,
         ),
