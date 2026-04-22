@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../theme/app_colors.dart';
 import '../models/event.dart';
 import '../../tickets/screens/buy_ticket_screen.dart';
@@ -36,6 +37,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
   StreamSubscription? _bleSub;
   BluetoothStatus? _bleStatus;
+  final Set<String> _notifiedStands = {};
 
   @override
   void initState() {
@@ -46,11 +48,70 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       if (!mounted) return;
       final status = event['status'];
       if (status is BluetoothStatus) setState(() => _bleStatus = status);
-      if (status == BluetoothStatus.awaitingConfirmation) {
-        final standId = event['standId'] as String?;
-        if (standId != null) _maybeShowConfirmation(standId);
+
+      final standId = event['standId'] as String?;
+
+      // Primera detección de un stand en esta sesión → feedback visual + háptico
+      if (status == BluetoothStatus.detected && standId != null) {
+        if (_notifiedStands.add(standId)) _notifyStandDetected(standId);
+      }
+
+      // Reseteamos para que si el usuario vuelve a entrar al rango después,
+      // la notificación se vuelva a mostrar.
+      if (status == BluetoothStatus.exit && standId != null) {
+        _notifiedStands.remove(standId);
+      }
+
+      if (status == BluetoothStatus.awaitingConfirmation && standId != null) {
+        _maybeShowConfirmation(standId);
       }
     });
+  }
+
+  void _notifyStandDetected(String standId) {
+    HapticFeedback.mediumImpact();
+    if (!mounted) return;
+    final nombre = _resolveStandNombre(standId);
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 5),
+        backgroundColor: AppColors.card,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.35)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        content: Row(
+          children: [
+            Container(
+              width: 38, height: 38,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary.withValues(alpha: 0.18),
+              ),
+              child: const Icon(Icons.bluetooth_searching_rounded, size: 18, color: AppColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Stand detectado',
+                      style: TextStyle(color: AppColors.ink, fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 2),
+                  Text('$nombre · mantente cerca 2 min para registrar la visita',
+                      style: const TextStyle(color: AppColors.muted, fontSize: 11, height: 1.3)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _maybeShowConfirmation(String standId) async {
