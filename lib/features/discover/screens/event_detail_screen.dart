@@ -366,8 +366,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
                   const SizedBox(height: 32),
 
-                  // ── Digital Handshake card (siempre visible) ────────
-                  _buildHandshakeCard(event),
+                  // ── Card destacada: Escanear QR (siempre visible) ────
+                  _buildQrScanCard(event),
                   const SizedBox(height: 24),
 
                   // ── Stands + herramientas: solo con ticket ─────────
@@ -402,9 +402,13 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       )),
                     ),
                     _buildToolTile(
-                      Icons.qr_code_scanner_rounded, 'Escanear QR', 'Check-in manual de stands',
+                      Icons.bluetooth_searching_rounded,
+                      'Digital Handshake',
+                      _isScanning
+                          ? 'Detectando stands cercanos…'
+                          : 'Registra visitas automáticamente cuando te acerques a un stand',
                       () => Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => ScanQRV2Screen(eventoId: event.id),
+                        builder: (_) => BluetoothTestScreen(eventName: event.nombre, eventoId: event.id),
                       )),
                     ),
                     _buildToolTile(
@@ -585,23 +589,20 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     );
   }
 
-  // ── Digital Handshake card ──────────────────────────────────────────────
+  // ── Card destacada: Escanear QR ─────────────────────────────────────────
   //
-  // Visible siempre para que el feature sea descubrible. El estado depende de
-  // si el usuario tiene ticket y de si el scanner BLE está corriendo.
-  Widget _buildHandshakeCard(Event event) {
-    final ready      = !checkingTicket && hasTicket;
-    final scanning   = ready && _isScanning;
+  // Flujo principal del check-in manual en stands. Visible siempre; si el
+  // usuario no tiene ticket se muestra bloqueada.
+  Widget _buildQrScanCard(Event event) {
+    final ready = !checkingTicket && hasTicket;
 
     final String subtitle;
     if (checkingTicket) {
       subtitle = 'Verificando tu acceso…';
     } else if (!hasTicket) {
       subtitle = 'Disponible con tu ticket del evento';
-    } else if (scanning) {
-      subtitle = 'Detectando stands cercanos · mantén la app abierta';
     } else {
-      subtitle = 'Toca para ver los stands cerca de ti';
+      subtitle = 'Escanea el QR que te muestre el stand';
     }
 
     final Color accent = ready ? AppColors.primary : AppColors.muted;
@@ -610,49 +611,40 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: accent.withValues(alpha: scanning ? 0.45 : 0.2), width: scanning ? 1.5 : 1),
+        border: Border.all(color: accent.withValues(alpha: 0.25)),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: ready
             ? () => Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => BluetoothTestScreen(eventName: event.nombre, eventoId: event.id),
+                  builder: (_) => ScanQRV2Screen(eventoId: event.id),
                 ))
             : () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Necesitas un ticket para activar el Digital Handshake.')),
+                  const SnackBar(content: Text('Necesitas un ticket para escanear stands.')),
                 ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              _HandshakePulse(active: scanning, color: accent),
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accent.withValues(alpha: 0.12),
+                ),
+                child: Icon(Icons.qr_code_scanner_rounded, size: 22, color: accent),
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text('Digital Handshake',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: ready ? AppColors.ink : AppColors.muted,
-                            )),
-                        if (scanning) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: accent.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text('ACTIVO',
-                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: accent, letterSpacing: 1)),
-                          ),
-                        ],
-                      ],
-                    ),
+                    Text('Escanear QR',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: ready ? AppColors.ink : AppColors.muted,
+                        )),
                     const SizedBox(height: 2),
                     Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
                   ],
@@ -665,88 +657,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// Ícono de Bluetooth con ondas animadas cuando el scanner está activo.
-class _HandshakePulse extends StatefulWidget {
-  final bool active;
-  final Color color;
-  const _HandshakePulse({required this.active, required this.color});
-
-  @override
-  State<_HandshakePulse> createState() => _HandshakePulseState();
-}
-
-class _HandshakePulseState extends State<_HandshakePulse> with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1600),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.active) _ctrl.repeat();
-  }
-
-  @override
-  void didUpdateWidget(covariant _HandshakePulse old) {
-    super.didUpdateWidget(old);
-    if (widget.active && !_ctrl.isAnimating) {
-      _ctrl.repeat();
-    } else if (!widget.active && _ctrl.isAnimating) {
-      _ctrl.stop();
-      _ctrl.value = 0;
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 44, height: 44,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          if (widget.active) ...[
-            AnimatedBuilder(animation: _ctrl, builder: (_, _) => _ring(_ctrl.value)),
-            AnimatedBuilder(animation: _ctrl, builder: (_, _) => _ring((_ctrl.value + 0.5) % 1.0)),
-          ],
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: widget.color.withValues(alpha: widget.active ? 0.2 : 0.08),
-            ),
-            child: Icon(
-              widget.active ? Icons.bluetooth_searching_rounded : Icons.bluetooth_rounded,
-              size: 18,
-              color: widget.color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _ring(double t) {
-    final size = 36 + (18 * t);
-    return Opacity(
-      opacity: (1 - t).clamp(0.0, 1.0),
-      child: Container(
-        width: size, height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: widget.color.withValues(alpha: 0.22 * (1 - t)),
         ),
       ),
     );
