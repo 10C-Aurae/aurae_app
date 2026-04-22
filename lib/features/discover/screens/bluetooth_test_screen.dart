@@ -139,11 +139,39 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          IconButton(
-            tooltip: _debugMode ? 'Ocultar debug BLE' : 'Ver debug BLE',
-            icon: Icon(_debugMode ? Icons.bug_report_rounded : Icons.bug_report_outlined,
-                color: _debugMode ? AppColors.primary : AppColors.muted),
-            onPressed: () => setState(() => _debugMode = !_debugMode),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Center(
+              child: Material(
+                color: _debugMode ? AppColors.primary : AppColors.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => setState(() => _debugMode = !_debugMode),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _debugMode ? Icons.filter_alt_rounded : Icons.radar_rounded,
+                          size: 16,
+                          color: _debugMode ? Colors.white : AppColors.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(_debugMode ? 'Solo stands' : 'Ver todos',
+                            style: TextStyle(
+                              color: _debugMode ? Colors.white : AppColors.primary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.3,
+                            )),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -232,7 +260,7 @@ class _BluetoothTestScreenState extends State<BluetoothTestScreen> with SingleTi
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(_debugMode ? 'DEBUG · TODOS LOS BLE (${_allDevices.length})' : 'STANDS CERCANOS',
+                        Text(_debugMode ? 'DISPOSITIVOS BLE CERCA (${_allDevices.length})' : 'STANDS CERCANOS',
                             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.muted, letterSpacing: 1.2)),
                         if (_debugMode)
                           Text('${_allDevices.values.where((d) => d.advertisementData.serviceUuids.isNotEmpty).length} c/ UUID',
